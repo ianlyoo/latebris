@@ -36,35 +36,110 @@ class SimulationStateStore private constructor(context: Context) {
         return snapshot
     }
 
-    fun setSimulationActive(activePresetId: String) {
+    fun setSimulationActive(
+        activePresetId: String,
+        sessionId: String,
+        heartbeatAtMillis: Long = System.currentTimeMillis(),
+    ) {
         val current = readFromPreferences()
         val snapshot = current.copy(
             isRunning = true,
             activePresetId = activePresetId,
             activeSettings = current.pendingSettings,
+            sessionId = sessionId,
+            sessionHeartbeatAtMillis = heartbeatAtMillis,
+            failureMessage = null,
         )
         preferences.edit()
             .putBoolean(KEY_RUNNING, true)
             .putString(KEY_PRESET_ID, activePresetId)
+            .putString(KEY_SESSION_ID, sessionId)
+            .putLong(KEY_SESSION_HEARTBEAT_AT_MILLIS, heartbeatAtMillis)
             .putBoolean(KEY_ACTIVE_FEATURES_ENABLED, snapshot.activeSettings.featuresEnabled)
             .putBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, snapshot.activeSettings.isGpsMockEnabled)
             .putBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, snapshot.activeSettings.isWifiMockEnabled)
             .putBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, snapshot.activeSettings.isCellMockEnabled)
             .putBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, snapshot.activeSettings.isMovementSimulationEnabled)
+            .remove(KEY_LAST_FAILURE_MESSAGE)
             .apply()
         _state.value = snapshot
     }
 
-    fun setSimulationInactive() {
-        val snapshot = readFromPreferences().copy(
+    fun setSimulationInactive(failureMessage: String? = null) {
+        val current = readFromPreferences()
+        val pendingSettings = current.pendingSettings
+        val nextFailureEventId = if (failureMessage != null) current.failureEventId + 1 else current.failureEventId
+        val snapshot = current.copy(
             isRunning = false,
             activePresetId = null,
+            activeSettings = pendingSettings.copy(
+                featuresEnabled = false,
+                isGpsMockEnabled = false,
+                isWifiMockEnabled = false,
+                isCellMockEnabled = false,
+                isMovementSimulationEnabled = false,
+            ),
+            sessionId = null,
+            sessionHeartbeatAtMillis = 0L,
+            failureMessage = failureMessage,
+            failureEventId = nextFailureEventId,
         )
-        preferences.edit()
+        val editor = preferences.edit()
             .putBoolean(KEY_RUNNING, false)
             .remove(KEY_PRESET_ID)
-            .apply()
+            .remove(KEY_SESSION_ID)
+            .putLong(KEY_SESSION_HEARTBEAT_AT_MILLIS, 0L)
+            .putBoolean(KEY_ACTIVE_FEATURES_ENABLED, false)
+            .putBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, false)
+            .putBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, false)
+            .putBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, false)
+            .putBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, false)
+
+        if (failureMessage != null) {
+            editor.putString(KEY_LAST_FAILURE_MESSAGE, failureMessage)
+                .putLong(KEY_LAST_FAILURE_EVENT_ID, nextFailureEventId)
+        } else {
+            editor.remove(KEY_LAST_FAILURE_MESSAGE)
+        }
+
+        editor.apply()
         _state.value = snapshot
+    }
+
+    fun updateSessionHeartbeat(
+        sessionId: String,
+        heartbeatAtMillis: Long = System.currentTimeMillis(),
+    ) {
+        val current = readFromPreferences()
+        if (!current.isRunning || current.sessionId != sessionId) {
+            return
+        }
+
+        preferences.edit()
+            .putLong(KEY_SESSION_HEARTBEAT_AT_MILLIS, heartbeatAtMillis)
+            .apply()
+        _state.value = load()
+    }
+
+    fun invalidateStaleRunningState(
+        nowMillis: Long = System.currentTimeMillis(),
+        timeoutMillis: Long = SESSION_HEARTBEAT_TIMEOUT_MILLIS,
+    ): SimulationControlState {
+        val snapshot = load()
+        if (!snapshot.isRunning) {
+            return snapshot
+        }
+
+        val heartbeatAtMillis = snapshot.sessionHeartbeatAtMillis
+        val isStale = heartbeatAtMillis <= 0L || nowMillis - heartbeatAtMillis > timeoutMillis
+        if (!isStale) {
+            return snapshot
+        }
+
+        setSimulationInactive(
+            failureMessage = "Simulation session expired because the background runtime stopped responding.",
+        )
+        return load()
     }
 
     fun setFeaturesEnabled(enabled: Boolean) {
@@ -109,6 +184,18 @@ class SimulationStateStore private constructor(context: Context) {
         putString(KEY_ACTIVE_PRESET_JSON, activePreset?.let(gson::toJson))
     }
 
+    fun asProviderBundle(activePreset: LocationPreset? = null): Bundle = Bundle().apply {
+        val snapshot = invalidateStaleRunningState()
+        putBoolean(KEY_RUNNING, snapshot.isRunning)
+        putString(KEY_PRESET_ID, snapshot.activePresetId)
+        putBoolean(KEY_ACTIVE_FEATURES_ENABLED, snapshot.activeFeaturesEnabled)
+        putBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, snapshot.activeGpsMockEnabled)
+        putBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, snapshot.activeWifiMockEnabled)
+        putBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, snapshot.activeCellMockEnabled)
+        putBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, snapshot.activeMovementSimulationEnabled)
+        putString(KEY_ACTIVE_PRESET_JSON, activePreset?.let(gson::toJson))
+    }
+
     private fun readFromPreferences(): SimulationControlState {
         val pendingSettings = SimulationFeatureSettings(
             featuresEnabled = preferences.getBoolean(KEY_PENDING_FEATURES_ENABLED, true),
@@ -130,6 +217,10 @@ class SimulationStateStore private constructor(context: Context) {
             activePresetId = preferences.getString(KEY_PRESET_ID, null),
             pendingSettings = pendingSettings,
             activeSettings = activeSettings,
+            sessionId = preferences.getString(KEY_SESSION_ID, null),
+            sessionHeartbeatAtMillis = preferences.getLong(KEY_SESSION_HEARTBEAT_AT_MILLIS, 0L),
+            failureMessage = preferences.getString(KEY_LAST_FAILURE_MESSAGE, null),
+            failureEventId = preferences.getLong(KEY_LAST_FAILURE_EVENT_ID, 0L),
         )
     }
 
@@ -151,8 +242,13 @@ class SimulationStateStore private constructor(context: Context) {
         const val KEY_ACTIVE_CELL_MOCK_ENABLED = "active_cell_mock_enabled"
         const val KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED = "active_movement_simulation_enabled"
         const val KEY_ACTIVE_PRESET_JSON = "active_preset_json"
+        const val KEY_SESSION_ID = "simulation_session_id"
+        const val KEY_SESSION_HEARTBEAT_AT_MILLIS = "simulation_session_heartbeat_at_millis"
+        const val KEY_LAST_FAILURE_MESSAGE = "last_failure_message"
+        const val KEY_LAST_FAILURE_EVENT_ID = "last_failure_event_id"
         const val METHOD_GET_STATE = "getSimulationState"
         const val AUTHORITY = "com.example.gpstick.simulation.state"
+        const val SESSION_HEARTBEAT_TIMEOUT_MILLIS = 10_000L
         private val gson = Gson()
 
         val STATE_KEY_SET = setOf(
@@ -168,6 +264,10 @@ class SimulationStateStore private constructor(context: Context) {
             KEY_ACTIVE_WIFI_MOCK_ENABLED,
             KEY_ACTIVE_CELL_MOCK_ENABLED,
             KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED,
+            KEY_SESSION_ID,
+            KEY_SESSION_HEARTBEAT_AT_MILLIS,
+            KEY_LAST_FAILURE_MESSAGE,
+            KEY_LAST_FAILURE_EVENT_ID,
         )
 
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY")
@@ -188,7 +288,7 @@ class SimulationStateStore private constructor(context: Context) {
                 context.contentResolver.call(CONTENT_URI, METHOD_GET_STATE, null, null)
             }.getOrNull()
 
-            val controlState = decodeControlState(bundle)
+            val controlState = decodeProviderControlState(bundle)
             val activePreset = bundle?.getString(KEY_ACTIVE_PRESET_JSON)?.let(::decodePreset)
             return SimulationStateSnapshot(
                 controlState = controlState,
@@ -216,6 +316,23 @@ class SimulationStateStore private constructor(context: Context) {
                     isCellMockEnabled = bundle?.getBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, pendingSettings.isCellMockEnabled) == true,
                     isMovementSimulationEnabled = bundle?.getBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, pendingSettings.isMovementSimulationEnabled) == true,
                 ),
+            )
+        }
+
+        private fun decodeProviderControlState(bundle: Bundle?): SimulationControlState {
+            val activeSettings = SimulationFeatureSettings(
+                featuresEnabled = bundle?.getBoolean(KEY_ACTIVE_FEATURES_ENABLED, false) == true,
+                isGpsMockEnabled = bundle?.getBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, false) == true,
+                isWifiMockEnabled = bundle?.getBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, false) == true,
+                isCellMockEnabled = bundle?.getBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, false) == true,
+                isMovementSimulationEnabled = bundle?.getBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, false) == true,
+            )
+
+            return SimulationControlState(
+                isRunning = bundle?.getBoolean(KEY_RUNNING, false) == true,
+                activePresetId = bundle?.getString(KEY_PRESET_ID),
+                pendingSettings = activeSettings,
+                activeSettings = activeSettings,
             )
         }
 

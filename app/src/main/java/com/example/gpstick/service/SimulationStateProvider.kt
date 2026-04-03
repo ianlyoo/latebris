@@ -19,10 +19,10 @@ class SimulationStateProvider : ContentProvider() {
         val application = context.applicationContext as? com.example.gpstick.ui.GpStickApplication
         val appContainer = application?.appContainer
         val stateStore = appContainer?.simulationStateStore ?: SimulationStateStore.getInstance(context)
-        val snapshot = stateStore.load()
+        val snapshot = stateStore.invalidateStaleRunningState()
         val presetRepository = appContainer?.presetRepository ?: FilePresetRepository(context)
         val activePreset = snapshot.activePresetId?.let(presetRepository::getPreset)
-        return stateStore.asBundle(activePreset)
+        return stateStore.asProviderBundle(activePreset)
     }
 
     override fun query(

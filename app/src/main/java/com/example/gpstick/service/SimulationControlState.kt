@@ -21,6 +21,10 @@ data class SimulationControlState(
     val activePresetId: String? = null,
     val pendingSettings: SimulationFeatureSettings = SimulationFeatureSettings(),
     val activeSettings: SimulationFeatureSettings = SimulationFeatureSettings(),
+    val sessionId: String? = null,
+    val sessionHeartbeatAtMillis: Long = 0L,
+    val failureMessage: String? = null,
+    val failureEventId: Long = 0L,
 ) {
     val hasAnyMockFeatureEnabled: Boolean
         get() = pendingSettings.hasAnyMockFeatureEnabled
