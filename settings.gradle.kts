@@ -15,6 +15,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "gpstick"
+rootProject.name = "Latebris"
 include(":app")
 include(":xposed-stubs")
