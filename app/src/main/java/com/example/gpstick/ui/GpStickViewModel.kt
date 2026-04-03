@@ -5,13 +5,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.gpstick.data.preset.CapturedDeviceState
 import com.example.gpstick.data.preset.CellTower
 import com.example.gpstick.data.preset.GpsPreset
 import com.example.gpstick.data.preset.LocationPreset
 import com.example.gpstick.data.preset.PresetRepository
 import com.example.gpstick.data.preset.WifiNetwork
+import com.example.gpstick.data.preset.DeviceStateCaptureRepository
 import com.example.gpstick.service.ForegroundServiceController
 import com.example.gpstick.service.SimulationControlState
+import com.example.gpstick.service.SimulationFeatureSettings
 import com.example.gpstick.service.SimulationStateStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +24,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 private const val DEFAULT_ACCURACY_METERS = 12.5f
@@ -101,18 +106,37 @@ data class GpStickUiState(
     val selectedPresetId: String? = null,
     val activePresetId: String? = null,
     val simulationState: SimulationState = SimulationState.Stopped,
+    val pendingFeaturesEnabled: Boolean = true,
+    val pendingGpsMockEnabled: Boolean = true,
+    val pendingWifiMockEnabled: Boolean = true,
+    val pendingCellMockEnabled: Boolean = true,
+    val pendingMovementSimulationEnabled: Boolean = false,
+    val activeFeaturesEnabled: Boolean = true,
+    val activeGpsMockEnabled: Boolean = true,
+    val activeWifiMockEnabled: Boolean = true,
+    val activeCellMockEnabled: Boolean = true,
+    val activeMovementSimulationEnabled: Boolean = false,
+    val locationPermissionGranted: Boolean = true,
+    val notificationPermissionGranted: Boolean = true,
+    val notificationPermissionRequired: Boolean = false,
+    val canStartSimulation: Boolean = true,
 ) {
     val selectedPreset: PresetUiModel?
         get() = presets.firstOrNull { it.id == selectedPresetId }
 
     val activePreset: PresetUiModel?
         get() = presets.firstOrNull { it.id == activePresetId }
+
+    val permissionsReady: Boolean
+        get() = locationPermissionGranted &&
+            (!notificationPermissionRequired || notificationPermissionGranted)
 }
 
 class GpStickViewModel(
     private val presetRepository: PresetRepository,
     private val serviceController: ForegroundServiceController,
     private val simulationStateStore: SimulationStateStore,
+    private val deviceStateCaptureRepository: DeviceStateCaptureRepository,
 ) : ViewModel() {
     private val viewModelScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val initialSimulationState = simulationStateStore.load()
@@ -124,6 +148,17 @@ class GpStickViewModel(
             selectedPresetId = initialSimulationState.activePresetId ?: initialPresets.firstOrNull()?.id,
             activePresetId = initialSimulationState.activePresetId,
             simulationState = initialSimulationState.toUiState(),
+            pendingFeaturesEnabled = initialSimulationState.featuresEnabled,
+            pendingGpsMockEnabled = initialSimulationState.isGpsMockEnabled,
+            pendingWifiMockEnabled = initialSimulationState.isWifiMockEnabled,
+            pendingCellMockEnabled = initialSimulationState.isCellMockEnabled,
+            pendingMovementSimulationEnabled = initialSimulationState.isMovementSimulationEnabled,
+            activeFeaturesEnabled = initialSimulationState.activeFeaturesEnabled,
+            activeGpsMockEnabled = initialSimulationState.activeGpsMockEnabled,
+            activeWifiMockEnabled = initialSimulationState.activeWifiMockEnabled,
+            activeCellMockEnabled = initialSimulationState.activeCellMockEnabled,
+            activeMovementSimulationEnabled = initialSimulationState.activeMovementSimulationEnabled,
+            canStartSimulation = initialSimulationState.hasAnyMockFeatureEnabled,
         )
     )
         private set
@@ -137,7 +172,7 @@ class GpStickViewModel(
                 refreshPresetList(
                     selectedPresetId = state.activePresetId ?: uiState.selectedPresetId,
                     activePresetId = state.activePresetId,
-                    simulationState = state.toUiState(),
+                    simulationState = state,
                 )
             }
             .launchIn(viewModelScope)
@@ -159,6 +194,65 @@ class GpStickViewModel(
     fun openPresetEditor(presetId: String?) {
         val preset = presetId?.let(presetRepository::getPreset)
         presetEditorState = (preset?.toEditorState() ?: emptyPresetEditorState()).validated()
+    }
+
+    fun captureCurrentDeviceState(onCaptured: (Boolean) -> Unit) {
+        if (uiState.simulationState == SimulationState.Running) {
+            onCaptured(false)
+            return
+        }
+
+        viewModelScope.launch {
+            val capturedState = withContext(Dispatchers.IO) {
+                deviceStateCaptureRepository.captureCurrentState()
+            }
+
+            if (capturedState == null) {
+                onCaptured(false)
+                return@launch
+            }
+
+            applyCapturedState(capturedState)
+            onCaptured(true)
+        }
+    }
+
+    private fun applyCapturedState(capturedState: CapturedDeviceState) {
+        presetEditorState = LocationPreset(
+            id = UUID.randomUUID().toString(),
+            name = "Captured state ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}",
+            summary = buildPresetSummary(
+                latitude = capturedState.gps.latitude,
+                longitude = capturedState.gps.longitude,
+                wifiCount = capturedState.wifiNetworks.size,
+                cellCount = capturedState.cellTowers.size,
+            ),
+            gps = capturedState.gps.copy(
+                accuracyMeters = if (capturedState.gps.accuracyMeters > 0f) capturedState.gps.accuracyMeters else DEFAULT_ACCURACY_METERS,
+            ),
+            wifiNetworks = capturedState.wifiNetworks,
+            cellTowers = capturedState.cellTowers,
+        ).toNewEditorState().validated()
+    }
+
+    fun setFeaturesEnabled(enabled: Boolean) {
+        simulationStateStore.setFeaturesEnabled(enabled)
+    }
+
+    fun setGpsMockEnabled(enabled: Boolean) {
+        simulationStateStore.setGpsMockEnabled(enabled)
+    }
+
+    fun setWifiMockEnabled(enabled: Boolean) {
+        simulationStateStore.setWifiMockEnabled(enabled)
+    }
+
+    fun setCellMockEnabled(enabled: Boolean) {
+        simulationStateStore.setCellMockEnabled(enabled)
+    }
+
+    fun setMovementSimulationEnabled(enabled: Boolean) {
+        simulationStateStore.setMovementSimulationEnabled(enabled)
     }
 
     fun closePresetEditor() {
@@ -275,13 +369,42 @@ class GpStickViewModel(
     }
 
     fun startSimulation() {
-        if (uiState.simulationState == SimulationState.Running) {
+        if (uiState.simulationState == SimulationState.Running || !uiState.canStartSimulation) {
             return
         }
 
         val selectedPreset = presetRepository.getPreset(uiState.selectedPresetId ?: return) ?: return
 
         serviceController.start(selectedPreset)
+    }
+
+    fun updateRuntimePermissionState(
+        locationPermissionGranted: Boolean,
+        notificationPermissionGranted: Boolean,
+        notificationPermissionRequired: Boolean,
+    ) {
+        val simulationState = SimulationControlState(
+            pendingSettings = SimulationFeatureSettings(
+                featuresEnabled = uiState.pendingFeaturesEnabled,
+                isGpsMockEnabled = uiState.pendingGpsMockEnabled,
+                isWifiMockEnabled = uiState.pendingWifiMockEnabled,
+                isCellMockEnabled = uiState.pendingCellMockEnabled,
+                isMovementSimulationEnabled = uiState.pendingMovementSimulationEnabled,
+            ),
+        )
+        val canStartSimulation = canStartSimulation(
+            locationPermissionGranted = locationPermissionGranted,
+            notificationPermissionGranted = notificationPermissionGranted,
+            notificationPermissionRequired = notificationPermissionRequired,
+            simulationState = simulationState,
+        )
+
+        uiState = uiState.copy(
+            locationPermissionGranted = locationPermissionGranted,
+            notificationPermissionGranted = notificationPermissionGranted,
+            notificationPermissionRequired = notificationPermissionRequired,
+            canStartSimulation = canStartSimulation,
+        )
     }
 
     fun stopSimulation() {
@@ -304,7 +427,7 @@ class GpStickViewModel(
     private fun refreshPresetList(
         selectedPresetId: String? = uiState.selectedPresetId,
         activePresetId: String? = uiState.activePresetId,
-        simulationState: SimulationState = uiState.simulationState,
+        simulationState: SimulationControlState = initialSimulationState,
     ) {
         val presets = presetRepository.getPresets().map(LocationPreset::toUiModel)
         val presetIds = presets.map(PresetUiModel::id).toSet()
@@ -318,8 +441,38 @@ class GpStickViewModel(
             presets = presets,
             selectedPresetId = resolvedSelectedPresetId,
             activePresetId = activePresetId,
-            simulationState = simulationState,
+            simulationState = simulationState.toUiState(),
+            pendingFeaturesEnabled = simulationState.featuresEnabled,
+            pendingGpsMockEnabled = simulationState.isGpsMockEnabled,
+            pendingWifiMockEnabled = simulationState.isWifiMockEnabled,
+            pendingCellMockEnabled = simulationState.isCellMockEnabled,
+            pendingMovementSimulationEnabled = simulationState.isMovementSimulationEnabled,
+            activeFeaturesEnabled = simulationState.activeFeaturesEnabled,
+            activeGpsMockEnabled = simulationState.activeGpsMockEnabled,
+            activeWifiMockEnabled = simulationState.activeWifiMockEnabled,
+            activeCellMockEnabled = simulationState.activeCellMockEnabled,
+            activeMovementSimulationEnabled = simulationState.activeMovementSimulationEnabled,
+            locationPermissionGranted = uiState.locationPermissionGranted,
+            notificationPermissionGranted = uiState.notificationPermissionGranted,
+            notificationPermissionRequired = uiState.notificationPermissionRequired,
+            canStartSimulation = canStartSimulation(
+                locationPermissionGranted = uiState.locationPermissionGranted,
+                notificationPermissionGranted = uiState.notificationPermissionGranted,
+                notificationPermissionRequired = uiState.notificationPermissionRequired,
+                simulationState = simulationState,
+            ),
         )
+    }
+
+    private fun canStartSimulation(
+        locationPermissionGranted: Boolean,
+        notificationPermissionGranted: Boolean,
+        notificationPermissionRequired: Boolean,
+        simulationState: SimulationControlState,
+    ): Boolean {
+        val permissionsReady = locationPermissionGranted &&
+            (!notificationPermissionRequired || notificationPermissionGranted)
+        return permissionsReady && simulationState.hasAnyMockFeatureEnabled
     }
 
     private fun upsertPreset(preset: LocationPreset) {
@@ -378,6 +531,10 @@ private fun LocationPreset.toEditorState(): PresetEditorUiState = PresetEditorUi
     altitude = gps.altitude.toEditorNumber(),
     wifiNetworks = wifiNetworks.map(WifiNetwork::toEditorState),
     cellTowers = cellTowers.map(CellTower::toEditorState),
+)
+
+private fun LocationPreset.toNewEditorState(): PresetEditorUiState = toEditorState().copy(
+    isNew = true,
 )
 
 private fun WifiNetwork.toEditorState(): WifiNetworkEditorUiState = WifiNetworkEditorUiState(
