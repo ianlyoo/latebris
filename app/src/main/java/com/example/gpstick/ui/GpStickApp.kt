@@ -19,8 +19,10 @@ private enum class GpStickRoute {
 @Composable
 fun GpStickApp(
     viewModel: GpStickViewModel,
+    onRequestPermissions: () -> Unit = {},
 ) {
     var route by rememberSaveable { mutableStateOf(GpStickRoute.Dashboard.name) }
+    var dashboardTab by rememberSaveable { mutableStateOf(DashboardTab.Presets.name) }
 
     GpStickTheme(darkTheme = true) {
         Surface(
@@ -31,9 +33,24 @@ fun GpStickApp(
                 GpStickRoute.Dashboard -> {
                     HomeScreen(
                         state = viewModel.uiState,
+                        selectedTab = DashboardTab.valueOf(dashboardTab),
+                        onTabSelected = { tab -> dashboardTab = tab.name },
                         onPresetSelected = viewModel::selectPreset,
                         onStart = viewModel::startSimulation,
                         onStop = viewModel::stopSimulation,
+                        onRequestPermissions = onRequestPermissions,
+                        onCaptureCurrentState = {
+                            viewModel.captureCurrentDeviceState { captured ->
+                                if (captured) {
+                                    route = GpStickRoute.PresetEditor.name
+                                }
+                            }
+                        },
+                        onFeaturesEnabledChanged = viewModel::setFeaturesEnabled,
+                        onGpsMockEnabledChanged = viewModel::setGpsMockEnabled,
+                        onWifiMockEnabledChanged = viewModel::setWifiMockEnabled,
+                        onCellMockEnabledChanged = viewModel::setCellMockEnabled,
+                        onMovementSimulationEnabledChanged = viewModel::setMovementSimulationEnabled,
                         onCreatePreset = {
                             viewModel.openPresetEditor(presetId = null)
                             route = GpStickRoute.PresetEditor.name
