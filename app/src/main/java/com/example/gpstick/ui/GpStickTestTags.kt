@@ -1,6 +1,8 @@
 package com.example.gpstick.ui
 
 object GpStickTestTags {
+    const val DASHBOARD_DRAWER_OPEN = "dashboard_drawer_open"
+
     const val DASHBOARD_TAB_PRESETS = "dashboard_tab_presets"
     const val DASHBOARD_TAB_STATUS = "dashboard_tab_status"
     const val DASHBOARD_TAB_OPTIONS = "dashboard_tab_options"

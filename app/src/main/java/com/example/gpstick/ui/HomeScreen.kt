@@ -1,44 +1,43 @@
 package com.example.gpstick.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Divider
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.example.gpstick.ui.theme.GpStickSpacing
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 enum class DashboardTab(val label: String) {
     Presets("Presets"),
@@ -71,96 +70,180 @@ fun HomeScreen(
         presetsEditable &&
         state.permissionsReady &&
         state.canStartSimulation
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                text = "Latebris QA Console",
-                        style = MaterialTheme.typography.headlineSmall,
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(GpStickSpacing.drawerWidth),
+                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                drawerContentColor = MaterialTheme.colorScheme.onSurface,
+            ) {
+                DashboardDrawerContent(
+                    state = state,
+                    selectedTab = selectedTab,
+                    onTabSelected = { tab ->
+                        onTabSelected(tab)
+                        scope.launch { drawerState.close() }
+                    },
+                )
+            }
+        },
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                DashboardTopBar(
+                    selectedTab = selectedTab,
+                    isRunning = state.simulationState == SimulationState.Running,
+                    onOpenNavigation = {
+                        scope.launch { drawerState.open() }
+                    },
+                )
+            },
+        ) { innerPadding ->
+            ConsoleScreenBackground(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = GpStickSpacing.screen, vertical = GpStickSpacing.section),
+                    verticalArrangement = Arrangement.spacedBy(GpStickSpacing.section),
+                ) {
+                    DashboardHeroCard(
+                        state = state,
+                        selectedTab = selectedTab,
+                    )
+                    DashboardContent(
+                        modifier = Modifier.weight(1f),
+                        selectedTab = selectedTab,
+                        state = state,
+                        presetsEditable = presetsEditable,
+                        canStartSimulation = canStartSimulation,
+                        onPresetSelected = onPresetSelected,
+                        onStart = onStart,
+                        onStop = onStop,
+                        onRequestPermissions = onRequestPermissions,
+                        onFeaturesEnabledChanged = onFeaturesEnabledChanged,
+                        onGpsMockEnabledChanged = onGpsMockEnabledChanged,
+                        onWifiMockEnabledChanged = onWifiMockEnabledChanged,
+                        onCellMockEnabledChanged = onCellMockEnabledChanged,
+                        onMovementSimulationEnabledChanged = onMovementSimulationEnabledChanged,
+                        onCaptureCurrentState = onCaptureCurrentState,
+                        onCreatePreset = onCreatePreset,
+                        onEditPreset = onEditPreset,
                     )
                 }
-            )
-        }
-    ) { innerPadding ->
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = GpStickSpacing.screen, vertical = GpStickSpacing.section),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
-            verticalAlignment = Alignment.Top,
-        ) {
-            DashboardSidebar(
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-            )
-        DashboardContent(
-            modifier = Modifier.weight(1f),
-            selectedTab = selectedTab,
-            state = state,
-            presetsEditable = presetsEditable,
-            canStartSimulation = canStartSimulation,
-            onPresetSelected = onPresetSelected,
-            onStart = onStart,
-            onStop = onStop,
-            onRequestPermissions = onRequestPermissions,
-            onFeaturesEnabledChanged = onFeaturesEnabledChanged,
-            onGpsMockEnabledChanged = onGpsMockEnabledChanged,
-            onWifiMockEnabledChanged = onWifiMockEnabledChanged,
-            onCellMockEnabledChanged = onCellMockEnabledChanged,
-            onMovementSimulationEnabledChanged = onMovementSimulationEnabledChanged,
-            onCaptureCurrentState = onCaptureCurrentState,
-            onCreatePreset = onCreatePreset,
-            onEditPreset = onEditPreset,
-        )
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardSidebar(
+private fun DashboardTopBar(
+    selectedTab: DashboardTab,
+    isRunning: Boolean,
+    onOpenNavigation: () -> Unit,
+) {
+    TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+        ),
+        navigationIcon = {
+            TextButton(
+                onClick = onOpenNavigation,
+                modifier = Modifier.testTag(GpStickTestTags.DASHBOARD_DRAWER_OPEN),
+            ) {
+                Text("Menu")
+            }
+        },
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro)) {
+                Text(
+                    text = "Latebris QA Console",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Text(
+                    text = selectedTab.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        actions = {
+            ConsoleBadge(
+                text = if (isRunning) "Simulation live" else "Ready",
+                highlighted = isRunning,
+                modifier = Modifier.padding(end = GpStickSpacing.screen),
+            )
+        },
+    )
+}
+
+@Composable
+private fun DashboardDrawerContent(
+    state: GpStickUiState,
     selectedTab: DashboardTab,
     onTabSelected: (DashboardTab) -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = GpStickSpacing.card, vertical = GpStickSpacing.hero),
+        verticalArrangement = Arrangement.spacedBy(GpStickSpacing.section),
     ) {
-        Column(
-            modifier = Modifier
-                .width(180.dp)
-                .padding(GpStickSpacing.card),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.compact),
-        ) {
+        ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+            ConsoleSectionHeader(
+                eyebrow = "Workspace",
+                title = "Navigation",
+                description = "Open the drawer when you need it and keep the dashboard focused when you do not.",
+            )
+        }
+        ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surface) {
             Text(
-                text = "Dashboard",
-                style = MaterialTheme.typography.titleMedium,
+                text = "Views",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             DashboardTab.values().forEach { tab ->
-                val isSelected = tab == selectedTab
-                if (isSelected) {
-                    FilledTonalButton(
-                        onClick = { onTabSelected(tab) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(tab.testTag),
-                    ) {
-                        Text(tab.label)
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { onTabSelected(tab) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(tab.testTag),
-                    ) {
-                        Text(tab.label)
-                    }
-                }
+                NavigationDrawerItem(
+                    label = {
+                        Text(
+                            text = tab.label,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                    },
+                    selected = tab == selectedTab,
+                    onClick = { onTabSelected(tab) },
+                    modifier = Modifier.testTag(tab.testTag),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                )
             }
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+            ConsoleSectionHeader(
+                eyebrow = "Snapshot",
+                title = if (state.simulationState == SimulationState.Running) "Simulation running" else "Idle and ready",
+                description = state.selectedPreset?.name ?: "No preset selected yet.",
+            )
+            LabeledValue(
+                label = "Permissions",
+                value = if (state.permissionsReady) "Ready" else "Action required",
+            )
         }
     }
 }
@@ -172,6 +255,80 @@ private val DashboardTab.testTag: String
         DashboardTab.Options -> GpStickTestTags.DASHBOARD_TAB_OPTIONS
         DashboardTab.Help -> GpStickTestTags.DASHBOARD_TAB_HELP
     }
+
+private val DashboardTab.description: String
+    get() = when (this) {
+        DashboardTab.Presets -> "Manage profiles, capture current state, and open the editor."
+        DashboardTab.Status -> "Track live simulation state, permissions, and runtime actions."
+        DashboardTab.Options -> "Stage the next simulation run without changing live behavior."
+        DashboardTab.Help -> "Review the workflow guidance for presets, status, and options."
+    }
+
+@Composable
+private fun DashboardHeroCard(
+    state: GpStickUiState,
+    selectedTab: DashboardTab,
+) {
+    ConsolePanelCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        ConsoleSectionHeader(
+            eyebrow = "Dashboard",
+            title = selectedTab.label,
+            description = selectedTab.description,
+            trailing = {
+                ConsoleBadge(
+                    text = if (state.permissionsReady) "Permissions ready" else "Permissions needed",
+                    highlighted = state.permissionsReady,
+                )
+            },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+        ) {
+            DashboardMetric(
+                modifier = Modifier.weight(1f),
+                label = "Run state",
+                value = if (state.simulationState == SimulationState.Running) "Running" else "Stopped",
+            )
+            DashboardMetric(
+                modifier = Modifier.weight(1f),
+                label = "Preset library",
+                value = "${state.presets.size} profiles",
+            )
+            DashboardMetric(
+                modifier = Modifier.weight(1f),
+                label = "Current preset",
+                value = state.selectedPreset?.name ?: "None selected",
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashboardMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    ConsolePanelCard(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
 
 @Composable
 private fun DashboardContent(
@@ -268,58 +425,69 @@ private fun StatusPanel(
         null
     }
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isRunning) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerHighest
-            },
-        ),
+    ConsolePanelCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        containerColor = if (isRunning) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
     ) {
-        Column(
-            modifier = Modifier.padding(GpStickSpacing.card),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+        ConsoleSectionHeader(
+            eyebrow = if (isRunning) "Live simulation" else "Runtime control",
+            title = "Simulation status",
+            description = if (isRunning) {
+                "Simulation is running in the background and will continue until you press Stop."
+            } else {
+                "Review the current status here, then press Start to apply the pending settings from the Options tab."
+            },
+            trailing = {
+                ConsoleBadge(
+                    text = if (isRunning) "Running" else "Stopped",
+                    highlighted = isRunning,
+                )
+            },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
         ) {
-            Text(
-                text = "Simulation status",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = if (isRunning) {
-                    "Simulation is running in the background and will continue until you press Stop."
-                } else {
-                    "Review the current status here, then press Start to apply the pending settings from the Options tab."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             LabeledValue(
                 label = "State",
                 value = if (isRunning) "Running" else "Stopped",
-                modifier = Modifier.testTag(GpStickTestTags.SIMULATION_STATUS),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(GpStickTestTags.SIMULATION_STATUS),
             )
             LabeledValue(
                 label = "Permission readiness",
                 value = if (state.permissionsReady) "Ready" else "Action required",
-                modifier = Modifier.testTag(GpStickTestTags.PERMISSION_STATUS),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(GpStickTestTags.PERMISSION_STATUS),
             )
             LabeledValue(
                 label = if (isRunning) "Active preset" else "Selected preset",
                 value = highlightedPreset?.name ?: "None selected",
-                modifier = Modifier.testTag(GpStickTestTags.SELECTED_PRESET),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(GpStickTestTags.SELECTED_PRESET),
             )
+        }
+        ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
             PermissionStatusSection(state = state)
-            if (coordinates != null) {
+            coordinates?.let {
                 LabeledValue(
                     label = "Active coordinates",
-                    value = coordinates,
+                    value = it,
                     modifier = Modifier.testTag(GpStickTestTags.ACTIVE_PRESET_COORDINATES),
                 )
             }
-            Divider()
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
             SettingsSummarySection(
                 title = if (isRunning) "Applied on current run" else "Will apply on next start",
                 featuresEnabled = if (isRunning) state.activeFeaturesEnabled else state.pendingFeaturesEnabled,
@@ -328,41 +496,43 @@ private fun StatusPanel(
                 cellEnabled = if (isRunning) state.activeCellMockEnabled else state.pendingCellMockEnabled,
                 movementEnabled = if (isRunning) state.activeMovementSimulationEnabled else state.pendingMovementSimulationEnabled,
             )
-            if (!state.permissionsReady) {
+        }
+        if (!state.permissionsReady) {
+            ConsolePanelCard(containerColor = MaterialTheme.colorScheme.errorContainer) {
+                Text(
+                    text = "Grant $missingPermissionsMessage to enable Start.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
                 FilledTonalButton(
                     onClick = onRequestPermissions,
                     modifier = Modifier.testTag(GpStickTestTags.REQUEST_PERMISSIONS_CONTROL),
                 ) {
                     Text("Request permissions")
                 }
-                Text(
-                    text = "Grant $missingPermissionsMessage to enable Start.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+        ) {
+            Button(
+                onClick = onStart,
+                enabled = canStart,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(GpStickTestTags.START_CONTROL),
             ) {
-                Button(
-                    onClick = onStart,
-                    enabled = canStart,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag(GpStickTestTags.START_CONTROL),
-                ) {
-                    Text("Start")
-                }
-                OutlinedButton(
-                    onClick = onStop,
-                    enabled = canStop,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag(GpStickTestTags.STOP_CONTROL),
-                ) {
-                    Text("Stop")
-                }
+                Text("Start")
+            }
+            OutlinedButton(
+                onClick = onStop,
+                enabled = canStop,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(GpStickTestTags.STOP_CONTROL),
+            ) {
+                Text("Stop")
             }
         }
     }
@@ -421,84 +591,69 @@ private fun PresetPanel(
     onEditPreset: (String) -> Unit,
     enabled: Boolean,
 ) {
-    Card(
+    ConsolePanelCard(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .padding(top = GpStickSpacing.card),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+        ConsoleSectionHeader(
+            eyebrow = "Profiles",
+            title = "Preset library",
+            description = if (enabled) {
+                "Select a simulation profile, open the editor, or capture current device coordinates into a new preset."
+            } else {
+                "Preset actions are locked while the simulation is running."
+            },
+            trailing = {
+                ConsoleBadge(
+                    text = "${presets.size} total",
+                    highlighted = selectedPresetId != null,
+                )
+            },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = GpStickSpacing.card),
-                verticalArrangement = Arrangement.spacedBy(GpStickSpacing.compact),
-            ) {
-                Text(
-                    text = "Preset list",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
-                ) {
-                    FilledTonalButton(
-                        onClick = onCreatePreset,
-                        enabled = enabled,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag(GpStickTestTags.NEW_PRESET_CONTROL),
-                    ) {
-                        Text("New preset")
-                    }
-                    Button(
-                        onClick = onCaptureCurrentState,
-                        enabled = enabled,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag(GpStickTestTags.CAPTURE_CURRENT_STATE_CONTROL),
-                    ) {
-                        Text("Capture current state")
-                    }
-                }
-                Text(
-                    text = if (enabled) {
-                        "Select a simulation profile, open the editor, or capture current device coordinates into a new preset."
-                    } else {
-                        "Preset actions are locked while the simulation is running."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            LazyColumn(
+            FilledTonalButton(
+                onClick = onCreatePreset,
+                enabled = enabled,
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .testTag(GpStickTestTags.PRESET_LIST),
-                contentPadding = PaddingValues(
-                    start = GpStickSpacing.card,
-                    end = GpStickSpacing.card,
-                    bottom = GpStickSpacing.card,
-                ),
-                verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                    .testTag(GpStickTestTags.NEW_PRESET_CONTROL),
             ) {
-                items(items = presets, key = { it.id }) { preset ->
-                    PresetRow(
-                        preset = preset,
-                        selected = preset.id == selectedPresetId,
-                        enabled = enabled,
-                        onClick = { onPresetSelected(preset.id) },
-                        onEdit = { onEditPreset(preset.id) },
-                    )
-                }
+                Text("New preset")
+            }
+            Button(
+                onClick = onCaptureCurrentState,
+                enabled = enabled,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(GpStickTestTags.CAPTURE_CURRENT_STATE_CONTROL),
+            ) {
+                Text("Capture current state")
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .testTag(GpStickTestTags.PRESET_LIST),
+            contentPadding = PaddingValues(vertical = GpStickSpacing.micro),
+            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+        ) {
+            items(items = presets, key = { it.id }) { preset ->
+                PresetRow(
+                    preset = preset,
+                    selected = preset.id == selectedPresetId,
+                    enabled = enabled,
+                    onClick = { onPresetSelected(preset.id) },
+                    onEdit = { onEditPreset(preset.id) },
+                )
             }
         }
     }
@@ -559,23 +714,7 @@ private fun PresetRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (selected) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = MaterialTheme.shapes.extraLarge,
-                                )
-                                .padding(
-                                    horizontal = GpStickSpacing.badgeHorizontal,
-                                    vertical = GpStickSpacing.badgeVertical,
-                                ),
-                        ) {
-                            Text(
-                                text = "Selected",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        }
+                        ConsoleBadge(text = "Selected", highlighted = true)
                     }
                     TextButton(
                         onClick = onEdit,
@@ -605,65 +744,50 @@ private fun ControlPanel(
     onMovementSimulationEnabledChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    ConsolePanelCard(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
-            modifier = Modifier.padding(GpStickSpacing.card),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
-        ) {
-            Text(
-                text = "Simulation options",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = "Changes here are saved as pending settings. They are applied the next time you press Start from the Status tab.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(modifier = Modifier.height(GpStickSpacing.section))
-
-            Divider()
-
-            ToggleOption(
-                label = "Enable simulation features",
-                value = state.pendingFeaturesEnabled,
-                onValueChange = onFeaturesEnabledChanged,
-                testTag = GpStickTestTags.FEATURES_ENABLED_TOGGLE,
-            )
-            ToggleOption(
-                label = "Mock GPS location",
-                value = state.pendingGpsMockEnabled,
-                onValueChange = onGpsMockEnabledChanged,
-                enabled = state.pendingFeaturesEnabled,
-                testTag = GpStickTestTags.GPS_MOCK_ENABLED_TOGGLE,
-            )
-            ToggleOption(
-                label = "Mock Wi-Fi scans",
-                value = state.pendingWifiMockEnabled,
-                onValueChange = onWifiMockEnabledChanged,
-                enabled = state.pendingFeaturesEnabled,
-                testTag = GpStickTestTags.WIFI_MOCK_ENABLED_TOGGLE,
-            )
-            ToggleOption(
-                label = "Mock cell info",
-                value = state.pendingCellMockEnabled,
-                onValueChange = onCellMockEnabledChanged,
-                enabled = state.pendingFeaturesEnabled,
-                testTag = GpStickTestTags.CELL_MOCK_ENABLED_TOGGLE,
-            )
-            ToggleOption(
-                label = "Movement simulation",
-                value = state.pendingMovementSimulationEnabled,
-                onValueChange = onMovementSimulationEnabledChanged,
-                enabled = state.pendingFeaturesEnabled,
-                testTag = GpStickTestTags.MOVEMENT_SIMULATION_ENABLED_TOGGLE,
-            )
-        }
+        ConsoleSectionHeader(
+            eyebrow = "Staged controls",
+            title = "Simulation options",
+            description = "Changes here are saved as pending settings. They are applied the next time you press Start from the Status tab.",
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        ToggleOption(
+            label = "Enable simulation features",
+            value = state.pendingFeaturesEnabled,
+            onValueChange = onFeaturesEnabledChanged,
+            testTag = GpStickTestTags.FEATURES_ENABLED_TOGGLE,
+        )
+        ToggleOption(
+            label = "Mock GPS location",
+            value = state.pendingGpsMockEnabled,
+            onValueChange = onGpsMockEnabledChanged,
+            enabled = state.pendingFeaturesEnabled,
+            testTag = GpStickTestTags.GPS_MOCK_ENABLED_TOGGLE,
+        )
+        ToggleOption(
+            label = "Mock Wi-Fi scans",
+            value = state.pendingWifiMockEnabled,
+            onValueChange = onWifiMockEnabledChanged,
+            enabled = state.pendingFeaturesEnabled,
+            testTag = GpStickTestTags.WIFI_MOCK_ENABLED_TOGGLE,
+        )
+        ToggleOption(
+            label = "Mock cell info",
+            value = state.pendingCellMockEnabled,
+            onValueChange = onCellMockEnabledChanged,
+            enabled = state.pendingFeaturesEnabled,
+            testTag = GpStickTestTags.CELL_MOCK_ENABLED_TOGGLE,
+        )
+        ToggleOption(
+            label = "Movement simulation",
+            value = state.pendingMovementSimulationEnabled,
+            onValueChange = onMovementSimulationEnabledChanged,
+            enabled = state.pendingFeaturesEnabled,
+            testTag = GpStickTestTags.MOVEMENT_SIMULATION_ENABLED_TOGGLE,
+        )
     }
 }
 
@@ -676,59 +800,72 @@ private fun ToggleOption(
     enabled: Boolean = true,
     testTag: String? = null,
 ) {
-    val switchModifier = testTag?.let(modifier::testTag) ?: modifier
-    Row(
-        modifier = switchModifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+    ConsolePanelCard(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Switch(
-            enabled = enabled,
-            checked = value,
-            onCheckedChange = onValueChange,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Switch(
+                enabled = enabled,
+                checked = value,
+                onCheckedChange = onValueChange,
+                modifier = testTag?.let { Modifier.testTag(it) } ?: Modifier,
+            )
+        }
     }
 }
 
 @Composable
 private fun HelpPanel(modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+    ConsolePanelCard(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
-            modifier = Modifier.padding(GpStickSpacing.card),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
-        ) {
-            Text(
-                text = "Help",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = "Use Presets to select and edit profiles, capture current device location as a new profile, and manage the list.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "Use Status to check active simulation state and permission readiness.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "Use Status to start or stop the simulation. Options only change what will be applied on the next start.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "Need a new profile? Capture current state and then save in the editor.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        ConsoleSectionHeader(
+            eyebrow = "Operator notes",
+            title = "Help",
+            description = "Quick reminders for how the dashboard, presets, and simulation controls work together.",
+        )
+        HelpCallout(text = "Use Presets to select and edit profiles, capture current device location as a new profile, and manage the list.")
+        HelpCallout(text = "Use Status to check active simulation state and permission readiness.")
+        HelpCallout(text = "Use Status to start or stop the simulation. Options only change what will be applied on the next start.")
+        HelpCallout(
+            text = "Need a new profile? Capture current state and then save in the editor.",
+            highlighted = true,
+        )
+    }
+}
+
+@Composable
+private fun HelpCallout(
+    text: String,
+    highlighted: Boolean = false,
+) {
+    ConsolePanelCard(
+        containerColor = if (highlighted) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLow
+        },
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (highlighted) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
     }
 }
 
