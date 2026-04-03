@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
@@ -23,10 +24,13 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Internal QA location environment simulator scaffold" />
+            android:value="Latebris internal QA location environment simulator" />
         <meta-data
             android:name="xposedminversion"
             android:value="93" />
+        <meta-data
+            android:name="xposedscope"
+            android:value="com.example.gpstick" />
 
         <activity
             android:name=".ui.MainActivity"

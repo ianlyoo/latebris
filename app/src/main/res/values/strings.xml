@@ -1,9 +1,10 @@
 <resources>
-    <string name="app_name">GPStick</string>
+    <string name="app_name">Latebris</string>
     <string name="notification_channel_name">GPS mock status</string>
     <string name="notification_channel_description">Shows active internal QA GPS mock simulation status</string>
-    <string name="notification_title">GPS mock simulation active</string>
-    <string name="notification_text_template">GPS mock active with preset: %1$s</string>
-    <string name="control_notification_title">Simulator control active</string>
-    <string name="control_notification_text_template">Simulation enabled for preset: %1$s</string>
+    <string name="notification_title">Latebris GPS simulation active</string>
+    <string name="notification_text_template">Latebris GPS active · %1$s · %2$s</string>
+    <string name="control_notification_title">Latebris simulator active</string>
+    <string name="control_notification_text_template">Running in background · %1$s · %2$s</string>
+    <string name="control_notification_stop_action">Stop</string>
 </resources>

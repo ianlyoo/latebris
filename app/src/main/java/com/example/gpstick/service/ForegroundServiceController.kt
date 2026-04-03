@@ -13,6 +13,10 @@ class AndroidForegroundServiceController(
     private val context: Context,
 ) : ForegroundServiceController {
     override fun start(preset: LocationPreset) {
+        if (!RuntimePermissionGate.hasRequiredSimulationPermissions(context)) {
+            return
+        }
+
         val command = ServiceCommandFactory.startSimulation(context = context, presetId = preset.id)
         context.startForegroundService(command)
     }
