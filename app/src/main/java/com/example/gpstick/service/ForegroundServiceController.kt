@@ -4,7 +4,7 @@ import android.content.Context
 import com.example.gpstick.data.preset.LocationPreset
 
 interface ForegroundServiceController {
-    fun start(preset: LocationPreset)
+    fun start(preset: LocationPreset): Boolean
 
     fun stop()
 }
@@ -12,13 +12,18 @@ interface ForegroundServiceController {
 class AndroidForegroundServiceController(
     private val context: Context,
 ) : ForegroundServiceController {
-    override fun start(preset: LocationPreset) {
+    override fun start(preset: LocationPreset): Boolean {
         if (!RuntimePermissionGate.hasRequiredSimulationPermissions(context)) {
-            return
+            return false
         }
 
-        val command = ServiceCommandFactory.startSimulation(context = context, presetId = preset.id)
-        context.startForegroundService(command)
+        return try {
+            val command = ServiceCommandFactory.startSimulation(context = context, presetId = preset.id)
+            context.startForegroundService(command)
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     override fun stop() {

@@ -45,12 +45,6 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <service
-            android:name=".core.gps.GpsMockService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location" />
-
         <provider
             android:name=".service.SimulationStateProvider"
             android:authorities="com.example.gpstick.simulation.state"
