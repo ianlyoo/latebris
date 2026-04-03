@@ -32,13 +32,26 @@ class SimulatorControlService : Service() {
         when (intent?.action) {
             ServiceCommandFactory.ACTION_START_SIMULATION -> handleStart(intent, startId)
             ServiceCommandFactory.ACTION_STOP_SIMULATION -> handleStop(startId)
+            null -> restoreRunningSession(startId)
         }
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun handleStart(intent: Intent, startId: Int) {
+        if (!RuntimePermissionGate.hasRequiredSimulationPermissions(this)) {
+            stateStore.setSimulationInactive()
+            stopSelf(startId)
+            return
+        }
+
+        val simulationState = stateStore.load()
+        if (!simulationState.hasAnyMockFeatureEnabled) {
+            handleStop(startId)
+            return
+        }
+
         val presetId = intent.getStringExtra(ServiceCommandFactory.EXTRA_PRESET_ID)
         val preset = presetId?.let(simulationCoordinator::start)
         if (preset == null) {
@@ -48,13 +61,41 @@ class SimulatorControlService : Service() {
 
         PresetManager.activatePreset(preset)
         stateStore.setSimulationActive(preset.id)
+        val appliedState = stateStore.load()
 
         startForeground(
             SimulationNotificationFactory.CONTROL_NOTIFICATION_ID,
-            notificationFactory.buildControlNotification(preset),
+            notificationFactory.buildControlNotification(preset, appliedState),
         )
 
-        startForegroundService(ServiceCommandFactory.startGpsMock(this))
+        if (appliedState.activeGpsMockEnabled) {
+            startForegroundService(ServiceCommandFactory.startGpsMock(this))
+        }
+    }
+
+    private fun restoreRunningSession(startId: Int) {
+        val simulationState = stateStore.load()
+        if (!simulationState.isRunning) {
+            stopSelf(startId)
+            return
+        }
+
+        val presetId = simulationState.activePresetId
+        val preset = presetId?.let(simulationCoordinator::start)
+        if (preset == null) {
+            handleStop(startId)
+            return
+        }
+
+        PresetManager.activatePreset(preset)
+        startForeground(
+            SimulationNotificationFactory.CONTROL_NOTIFICATION_ID,
+            notificationFactory.buildControlNotification(preset, simulationState),
+        )
+
+        if (simulationState.activeGpsMockEnabled) {
+            startForegroundService(ServiceCommandFactory.startGpsMock(this))
+        }
     }
 
     private fun handleStop(startId: Int) {

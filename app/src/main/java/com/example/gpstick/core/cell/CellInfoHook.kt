@@ -54,7 +54,7 @@ class CellInfoHook : IXposedHookLoadPackage {
     private fun resolveActivePreset(): LocationPreset? {
         val context = currentApplicationContext() ?: return null
         val sharedState = SimulationStateStore.readFromProvider(context)
-        if (!sharedState.isRunning) {
+        if (!sharedState.isRunning || !sharedState.activeFeaturesEnabled || !sharedState.activeCellMockEnabled) {
             return null
         }
 

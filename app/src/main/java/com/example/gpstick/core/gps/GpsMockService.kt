@@ -16,6 +16,7 @@ import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.example.gpstick.data.preset.LocationPreset
 import com.example.gpstick.data.preset.PresetManager
+import com.example.gpstick.service.SimulationStateStore
 import com.example.gpstick.service.ServiceCommandFactory
 import com.example.gpstick.service.SimulationNotificationFactory
 import com.google.android.gms.location.LocationServices
@@ -27,6 +28,9 @@ class GpsMockService : Service() {
 
     private lateinit var locationManager: LocationManager
     private lateinit var notificationFactory: SimulationNotificationFactory
+    private var simulatedLatitude = 0.0
+    private var simulatedLongitude = 0.0
+    private var movementInitialized = false
 
     private val injectionRunnable = object : Runnable {
         override fun run() {
@@ -58,8 +62,9 @@ class GpsMockService : Service() {
         when (intent?.action) {
             ServiceCommandFactory.ACTION_START_GPS_MOCK -> startGpsMocking(startId)
             ServiceCommandFactory.ACTION_STOP_GPS_MOCK -> stopSelf(startId)
+            null -> restoreGpsMocking(startId)
         }
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -76,20 +81,36 @@ class GpsMockService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun startGpsMocking(startId: Int) {
-        val activePreset = PresetManager.getActivePreset()
+        val activePreset = resolveActivePreset()
         if (activePreset == null) {
+            stopSelf(startId)
+            return
+        }
+
+        val sharedState = SimulationStateStore.readFromProvider(this)
+        if (!sharedState.activeFeaturesEnabled || !sharedState.activeGpsMockEnabled) {
             stopSelf(startId)
             return
         }
 
         startForeground(
             SimulationNotificationFactory.NOTIFICATION_ID,
-            notificationFactory.buildActiveNotification(activePreset),
+            notificationFactory.buildActiveNotification(activePreset, sharedState),
         )
         isInjecting = true
         handler.removeCallbacks(injectionRunnable)
         injectCurrentPresetLocation()
         scheduleNextInjection()
+    }
+
+    private fun restoreGpsMocking(startId: Int) {
+        val sharedState = SimulationStateStore.readFromProvider(this)
+        if (!sharedState.isRunning || !sharedState.activeGpsMockEnabled || !sharedState.activeFeaturesEnabled) {
+            stopSelf(startId)
+            return
+        }
+
+        startGpsMocking(startId)
     }
 
     private fun scheduleNextInjection() {
@@ -98,7 +119,11 @@ class GpsMockService : Service() {
     }
 
     private fun injectCurrentPresetLocation() {
-        val preset = PresetManager.getActivePreset() ?: return
+        val preset = resolveActivePreset() ?: return
+        val sharedState = SimulationStateStore.readFromProvider(this)
+        if (!sharedState.activeFeaturesEnabled || !sharedState.activeGpsMockEnabled) {
+            return
+        }
         if (!hasLocationPermission()) {
             stopSelf()
             return
@@ -110,23 +135,33 @@ class GpsMockService : Service() {
             locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, gpsLocation)
             locationManager.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, networkLocation)
         }
-
-        pushFusedMockLocation(gpsLocation)
+        
+        if (sharedState.activeFeaturesEnabled && sharedState.activeGpsMockEnabled) {
+            pushFusedMockLocation(gpsLocation)
+        }
 
         val manager = getSystemService(NotificationManager::class.java)
         manager.notify(
             SimulationNotificationFactory.NOTIFICATION_ID,
-            notificationFactory.buildActiveNotification(preset),
+            notificationFactory.buildActiveNotification(preset, sharedState),
         )
     }
 
     private fun createLocation(provider: String, preset: LocationPreset): Location {
-        val latitudeNoise = randomSignedNoise()
-        val longitudeNoise = randomSignedNoise()
+        val sharedState = SimulationStateStore.readFromProvider(this)
+        val isMovementEnabled = sharedState.activeMovementSimulationEnabled &&
+            sharedState.activeFeaturesEnabled &&
+            sharedState.activeGpsMockEnabled
+        val coordinates = if (isMovementEnabled) {
+            nextMovementCoordinate(preset.gps.latitude, preset.gps.longitude)
+        } else {
+            movementInitialized = false
+            Pair(preset.gps.latitude, preset.gps.longitude)
+        }
 
         return Location(provider).apply {
-            latitude = preset.gps.latitude + latitudeNoise
-            longitude = preset.gps.longitude + longitudeNoise
+            latitude = coordinates.first
+            longitude = coordinates.second
             altitude = preset.gps.altitude
             accuracy = random.nextDouble(3.0, 15.0001).toFloat()
             bearing = 0f
@@ -136,8 +171,22 @@ class GpsMockService : Service() {
         }
     }
 
-    private fun randomSignedNoise(): Double {
-        val magnitude = random.nextDouble(0.00001, 0.0000301)
+    private fun nextMovementCoordinate(baseLatitude: Double, baseLongitude: Double): Pair<Double, Double> {
+        if (!movementInitialized) {
+            simulatedLatitude = baseLatitude
+            simulatedLongitude = baseLongitude
+            movementInitialized = true
+        }
+
+        val latitudeStep = randomSignedDistance(0.000001, 0.00003)
+        val longitudeStep = randomSignedDistance(0.000001, 0.00003)
+        simulatedLatitude += latitudeStep
+        simulatedLongitude += longitudeStep
+        return Pair(simulatedLatitude, simulatedLongitude)
+    }
+
+    private fun randomSignedDistance(minMeters: Double, maxMeters: Double): Double {
+        val magnitude = random.nextDouble(minMeters, maxMeters)
         return if (random.nextBoolean()) magnitude else -magnitude
     }
 
@@ -178,6 +227,15 @@ class GpsMockService : Service() {
         runCatching {
             locationManager.removeTestProvider(provider)
         }
+    }
+
+    private fun resolveActivePreset(): LocationPreset? {
+        PresetManager.getActivePreset()?.let { return it }
+
+        val sharedState = SimulationStateStore.readFromProvider(this)
+        val presetId = sharedState.activePresetId ?: return null
+        PresetManager.initialize(this)
+        return PresetManager.getPreset(presetId)?.also(PresetManager::activatePreset)
     }
 
     @SuppressLint("MissingPermission")
