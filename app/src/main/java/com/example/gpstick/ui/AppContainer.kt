@@ -6,6 +6,7 @@ import com.example.gpstick.core.cell.CellHookManager
 import com.example.gpstick.core.gps.GpsHookManager
 import com.example.gpstick.core.gps.GpsMockService
 import com.example.gpstick.core.wifi.WifiHookManager
+import com.example.gpstick.data.preset.DeviceStateCaptureRepository
 import com.example.gpstick.data.preset.FilePresetRepository
 import com.example.gpstick.data.preset.PresetRepository
 import com.example.gpstick.service.AndroidForegroundServiceController
@@ -18,6 +19,7 @@ class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 
     val presetRepository: PresetRepository = FilePresetRepository(appContext)
+    val deviceStateCaptureRepository: DeviceStateCaptureRepository = DeviceStateCaptureRepository(appContext)
     val simulationStateStore = SimulationStateStore.getInstance(appContext)
 
     val simulationCoordinator: SimulationCoordinator = SimulationCoordinator(
