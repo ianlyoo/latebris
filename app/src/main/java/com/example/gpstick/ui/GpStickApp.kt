@@ -1,20 +1,29 @@
 package com.example.gpstick.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.example.gpstick.ui.theme.GpStickTheme
 
 private enum class GpStickRoute {
     Dashboard,
     PresetEditor,
 }
+
+internal fun sanitizeGpStickRouteName(raw: String?): String =
+    GpStickRoute.entries.firstOrNull { it.name == raw }?.name ?: GpStickRoute.Dashboard.name
+
+internal fun sanitizeDashboardTabName(raw: String?): String =
+    DashboardTab.entries.firstOrNull { it.name == raw }?.name ?: DashboardTab.Presets.name
 
 @Composable
 fun GpStickApp(
@@ -23,17 +32,28 @@ fun GpStickApp(
 ) {
     var route by rememberSaveable { mutableStateOf(GpStickRoute.Dashboard.name) }
     var dashboardTab by rememberSaveable { mutableStateOf(DashboardTab.Presets.name) }
+    val context = LocalContext.current
+    val resolvedRoute = sanitizeGpStickRouteName(route)
+    val resolvedDashboardTab = sanitizeDashboardTabName(dashboardTab)
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is GpStickUiEvent.ShowMessage -> Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     GpStickTheme(darkTheme = true) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            when (GpStickRoute.valueOf(route)) {
+            when (GpStickRoute.valueOf(resolvedRoute)) {
                 GpStickRoute.Dashboard -> {
                     HomeScreen(
                         state = viewModel.uiState,
-                        selectedTab = DashboardTab.valueOf(dashboardTab),
+                        selectedTab = DashboardTab.valueOf(resolvedDashboardTab),
                         onTabSelected = { tab -> dashboardTab = tab.name },
                         onPresetSelected = viewModel::selectPreset,
                         onStart = viewModel::startSimulation,

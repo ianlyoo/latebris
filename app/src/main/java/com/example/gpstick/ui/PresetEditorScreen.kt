@@ -1,19 +1,12 @@
 package com.example.gpstick.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -21,9 +14,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import com.example.gpstick.ui.theme.GpStickSpacing
@@ -48,15 +43,28 @@ fun PresetEditorScreen(
     onSave: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    BackHandler(onBack = onNavigateBack)
     Scaffold(
         modifier = Modifier.testTag(GpStickTestTags.PRESET_EDITOR_SCREEN),
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = {
-                    Text(
-                        text = if (state.isNew) "Create preset" else "Edit preset",
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro)) {
+                        Text(
+                            text = if (state.isNew) "Create preset" else "Edit preset",
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        Text(
+                            text = "Tune coordinates, Wi-Fi data, and cell rows in one consistent workspace.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 },
                 navigationIcon = {
                     TextButton(
@@ -69,68 +77,143 @@ fun PresetEditorScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        ConsoleScreenBackground(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = GpStickSpacing.screen, vertical = GpStickSpacing.section),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.section),
+                .padding(innerPadding),
         ) {
-            PresetDetailsSection(
-                state = state,
-                onNameChanged = onNameChanged,
-                onLatitudeChanged = onLatitudeChanged,
-                onLongitudeChanged = onLongitudeChanged,
-                onAltitudeChanged = onAltitudeChanged,
-            )
-            WifiNetworksSection(
-                wifiNetworks = state.wifiNetworks,
-                onAddWifiNetwork = onAddWifiNetwork,
-                onUpdateWifiNetwork = onUpdateWifiNetwork,
-                onRemoveWifiNetwork = onRemoveWifiNetwork,
-            )
-            CellTowersSection(
-                cellTowers = state.cellTowers,
-                canAutoFill = state.canAutoFill,
-                onAddCellTower = onAddCellTower,
-                onUpdateCellTower = onUpdateCellTower,
-                onRemoveCellTower = onRemoveCellTower,
-                onAutoFill = onAutoFill,
-                isAutoFillInProgress = isAutoFillInProgress,
-            )
-            state.validationMessage?.let { validationMessage ->
-                Text(
-                    text = validationMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = GpStickSpacing.screen, vertical = GpStickSpacing.section),
+                verticalArrangement = Arrangement.spacedBy(GpStickSpacing.section),
             ) {
-                Button(
-                    onClick = onSave,
-                    enabled = state.isSaveEnabled,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag(GpStickTestTags.SAVE_PRESET_CONTROL),
-                ) {
-                    Text(if (state.isNew) "Create" else "Save")
+                EditorOverviewCard(state = state)
+                PresetDetailsSection(
+                    state = state,
+                    onNameChanged = onNameChanged,
+                    onLatitudeChanged = onLatitudeChanged,
+                    onLongitudeChanged = onLongitudeChanged,
+                    onAltitudeChanged = onAltitudeChanged,
+                )
+                WifiNetworksSection(
+                    wifiNetworks = state.wifiNetworks,
+                    onAddWifiNetwork = onAddWifiNetwork,
+                    onUpdateWifiNetwork = onUpdateWifiNetwork,
+                    onRemoveWifiNetwork = onRemoveWifiNetwork,
+                )
+                CellTowersSection(
+                    cellTowers = state.cellTowers,
+                    canAutoFill = state.canAutoFill,
+                    onAddCellTower = onAddCellTower,
+                    onUpdateCellTower = onUpdateCellTower,
+                    onRemoveCellTower = onRemoveCellTower,
+                    onAutoFill = onAutoFill,
+                    isAutoFillInProgress = isAutoFillInProgress,
+                )
+                state.validationMessage?.let { validationMessage ->
+                    ConsolePanelCard(containerColor = MaterialTheme.colorScheme.errorContainer) {
+                        Text(
+                            text = validationMessage,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
                 }
-                if (state.canDelete) {
-                    OutlinedButton(
-                        onClick = onDelete,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                ) {
+                    Button(
+                        onClick = onSave,
+                        enabled = state.isSaveEnabled,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag(GpStickTestTags.DELETE_PRESET_CONTROL),
+                            .testTag(GpStickTestTags.SAVE_PRESET_CONTROL),
                     ) {
-                        Text("Delete")
+                        Text(if (state.isNew) "Create" else "Save")
+                    }
+                    if (state.canDelete) {
+                        OutlinedButton(
+                            onClick = onDelete,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag(GpStickTestTags.DELETE_PRESET_CONTROL),
+                        ) {
+                            Text("Delete")
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EditorOverviewCard(state: PresetEditorUiState) {
+    ConsolePanelCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        ConsoleSectionHeader(
+            eyebrow = "Editor",
+            title = if (state.isNew) "New preset draft" else "Preset workspace",
+            description = if (state.isNew) {
+                "Start with coordinates, then add surrounding Wi-Fi or cell data before saving."
+            } else {
+                "Review and refine the preset details without leaving the editor flow."
+            },
+            trailing = {
+                ConsoleBadge(
+                    text = if (state.isSaveEnabled) "Ready to save" else "Needs review",
+                    highlighted = state.isSaveEnabled,
+                )
+            },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+        ) {
+            EditorMetric(
+                modifier = Modifier.weight(1f),
+                label = "Wi-Fi rows",
+                value = state.wifiNetworks.size.toString(),
+            )
+            EditorMetric(
+                modifier = Modifier.weight(1f),
+                label = "Cell rows",
+                value = state.cellTowers.size.toString(),
+            )
+            EditorMetric(
+                modifier = Modifier.weight(1f),
+                label = "Mode",
+                value = if (state.isNew) "Create" else "Edit",
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditorMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    ConsolePanelCard(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -142,42 +225,42 @@ private fun PresetDetailsSection(
     onLongitudeChanged: (String) -> Unit,
     onAltitudeChanged: (String) -> Unit,
 ) {
-    SectionCard(title = "Preset details") {
-        OutlinedTextField(
+    SectionCard(
+        eyebrow = "Coordinates",
+        title = "Preset details",
+        description = "Define the location core before layering in captured network context.",
+    ) {
+        EditorTextField(
             value = state.name,
             onValueChange = onNameChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Name") },
-            singleLine = true,
+            label = "Name",
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
         ) {
-            OutlinedTextField(
+            EditorTextField(
                 value = state.latitude,
                 onValueChange = onLatitudeChanged,
                 modifier = Modifier.weight(1f),
-                label = { Text("Latitude") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                singleLine = true,
+                label = "Latitude",
+                keyboardType = KeyboardType.Text,
             )
-            OutlinedTextField(
+            EditorTextField(
                 value = state.longitude,
                 onValueChange = onLongitudeChanged,
                 modifier = Modifier.weight(1f),
-                label = { Text("Longitude") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                singleLine = true,
+                label = "Longitude",
+                keyboardType = KeyboardType.Text,
             )
         }
-        OutlinedTextField(
+        EditorTextField(
             value = state.altitude,
             onValueChange = onAltitudeChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Altitude") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            singleLine = true,
+            label = "Altitude",
+            keyboardType = KeyboardType.Text,
         )
     }
 }
@@ -190,7 +273,9 @@ private fun WifiNetworksSection(
     onRemoveWifiNetwork: (Int) -> Unit,
 ) {
     SectionCard(
+        eyebrow = "Radio context",
         title = "Wi-Fi networks",
+        description = "Add one or more nearby networks to make the preset feel grounded in a real environment.",
         action = {
             TextButton(
                 onClick = onAddWifiNetwork,
@@ -205,66 +290,53 @@ private fun WifiNetworksSection(
         }
 
         wifiNetworks.forEachIndexed { index, row ->
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(GpStickSpacing.card),
-                    verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Network ${index + 1}",
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        TextButton(
-                            onClick = { onRemoveWifiNetwork(index) },
-                            modifier = Modifier.testTag(GpStickTestTags.removeWifiRowControl(index)),
-                        ) {
-                            Text("Remove")
-                        }
-                    }
-                    OutlinedTextField(
-                        value = row.ssid,
-                        onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Ssid, it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("SSID") },
-                        singleLine = true,
+                    Text(
+                        text = "Network ${index + 1}",
+                        style = MaterialTheme.typography.titleSmall,
                     )
-                    OutlinedTextField(
-                        value = row.bssid,
-                        onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Bssid, it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("BSSID") },
-                        singleLine = true,
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                    TextButton(
+                        onClick = { onRemoveWifiNetwork(index) },
+                        modifier = Modifier.testTag(GpStickTestTags.removeWifiRowControl(index)),
                     ) {
-                        OutlinedTextField(
-                            value = row.level,
-                            onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Level, it) },
-                            modifier = Modifier.weight(1f),
-                            label = { Text("Level") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = row.frequency,
-                            onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Frequency, it) },
-                            modifier = Modifier.weight(1f),
-                            label = { Text("Frequency") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                        )
+                        Text("Remove")
                     }
+                }
+                EditorTextField(
+                    value = row.ssid,
+                    onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Ssid, it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "SSID",
+                )
+                EditorTextField(
+                    value = row.bssid,
+                    onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Bssid, it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "BSSID",
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                ) {
+                    EditorTextField(
+                        value = row.level,
+                        onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Level, it) },
+                        modifier = Modifier.weight(1f),
+                        label = "Level",
+                        keyboardType = KeyboardType.Text,
+                    )
+                    EditorTextField(
+                        value = row.frequency,
+                        onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Frequency, it) },
+                        modifier = Modifier.weight(1f),
+                        label = "Frequency",
+                        keyboardType = KeyboardType.Number,
+                    )
                 }
             }
         }
@@ -282,7 +354,9 @@ private fun CellTowersSection(
     isAutoFillInProgress: Boolean,
 ) {
     SectionCard(
+        eyebrow = "Carrier context",
         title = "Cell towers",
+        description = "Layer in tower metadata manually or pull a quick auto-fill where supported.",
         action = {
             Row(horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.compact)) {
                 TextButton(
@@ -306,77 +380,68 @@ private fun CellTowersSection(
         }
 
         cellTowers.forEachIndexed { index, row ->
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(GpStickSpacing.card),
-                    verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    Text(
+                        text = "Tower ${index + 1}",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    TextButton(
+                        onClick = { onRemoveCellTower(index) },
+                        modifier = Modifier.testTag(GpStickTestTags.removeCellRowControl(index)),
                     ) {
-                        Text(
-                            text = "Tower ${index + 1}",
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        TextButton(
-                            onClick = { onRemoveCellTower(index) },
-                            modifier = Modifier.testTag(GpStickTestTags.removeCellRowControl(index)),
-                        ) {
-                            Text("Remove")
-                        }
+                        Text("Remove")
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
-                    ) {
-                        NumberField(
-                            modifier = Modifier.weight(1f),
-                            value = row.mcc,
-                            onValueChange = { onUpdateCellTower(index, CellTowerField.Mcc, it) },
-                            label = "MCC",
-                        )
-                        NumberField(
-                            modifier = Modifier.weight(1f),
-                            value = row.mnc,
-                            onValueChange = { onUpdateCellTower(index, CellTowerField.Mnc, it) },
-                            label = "MNC",
-                        )
-                        NumberField(
-                            modifier = Modifier.weight(1f),
-                            value = row.ci,
-                            onValueChange = { onUpdateCellTower(index, CellTowerField.Ci, it) },
-                            label = "CI",
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
-                    ) {
-                        NumberField(
-                            modifier = Modifier.weight(1f),
-                            value = row.pci,
-                            onValueChange = { onUpdateCellTower(index, CellTowerField.Pci, it) },
-                            label = "PCI",
-                        )
-                        NumberField(
-                            modifier = Modifier.weight(1f),
-                            value = row.tac,
-                            onValueChange = { onUpdateCellTower(index, CellTowerField.Tac, it) },
-                            label = "TAC",
-                        )
-                        NumberField(
-                            modifier = Modifier.weight(1f),
-                            value = row.earfcn,
-                            onValueChange = { onUpdateCellTower(index, CellTowerField.Earfcn, it) },
-                            label = "EARFCN",
-                        )
-                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                ) {
+                    NumberField(
+                        modifier = Modifier.weight(1f),
+                        value = row.mcc,
+                        onValueChange = { onUpdateCellTower(index, CellTowerField.Mcc, it) },
+                        label = "MCC",
+                    )
+                    NumberField(
+                        modifier = Modifier.weight(1f),
+                        value = row.mnc,
+                        onValueChange = { onUpdateCellTower(index, CellTowerField.Mnc, it) },
+                        label = "MNC",
+                    )
+                    NumberField(
+                        modifier = Modifier.weight(1f),
+                        value = row.ci,
+                        onValueChange = { onUpdateCellTower(index, CellTowerField.Ci, it) },
+                        label = "CI",
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                ) {
+                    NumberField(
+                        modifier = Modifier.weight(1f),
+                        value = row.pci,
+                        onValueChange = { onUpdateCellTower(index, CellTowerField.Pci, it) },
+                        label = "PCI",
+                    )
+                    NumberField(
+                        modifier = Modifier.weight(1f),
+                        value = row.tac,
+                        onValueChange = { onUpdateCellTower(index, CellTowerField.Tac, it) },
+                        label = "TAC",
+                    )
+                    NumberField(
+                        modifier = Modifier.weight(1f),
+                        value = row.earfcn,
+                        onValueChange = { onUpdateCellTower(index, CellTowerField.Earfcn, it) },
+                        label = "EARFCN",
+                    )
                 }
             }
         }
@@ -386,33 +451,43 @@ private fun CellTowersSection(
 @Composable
 private fun SectionCard(
     title: String,
+    description: String,
+    modifier: Modifier = Modifier,
+    eyebrow: String? = null,
     action: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+    ConsolePanelCard(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
-            modifier = Modifier.padding(GpStickSpacing.card),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
-            content = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    action?.invoke()
-                }
-                content()
-            },
+        ConsoleSectionHeader(
+            title = title,
+            eyebrow = eyebrow,
+            description = description,
+            trailing = action,
         )
+        content()
     }
+}
+
+@Composable
+private fun EditorTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        label = { Text(label) },
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        singleLine = true,
+        colors = consoleOutlinedTextFieldColors(),
+    )
 }
 
 @Composable
@@ -422,13 +497,12 @@ private fun NumberField(
     onValueChange: (String) -> Unit,
     label: String,
 ) {
-    OutlinedTextField(
+    EditorTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        label = { Text(label) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        singleLine = true,
+        label = label,
+        keyboardType = KeyboardType.Number,
     )
 }
 
