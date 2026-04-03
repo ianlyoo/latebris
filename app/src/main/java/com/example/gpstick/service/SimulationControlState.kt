@@ -1,6 +1,7 @@
 package com.example.gpstick.service
 
 import androidx.compose.runtime.Immutable
+import com.example.gpstick.data.preset.LocationPreset
 
 @Immutable
 data class SimulationFeatureSettings(
@@ -57,3 +58,9 @@ data class SimulationControlState(
     val activeMovementSimulationEnabled: Boolean
         get() = activeSettings.isMovementSimulationEnabled
 }
+
+@Immutable
+data class SimulationStateSnapshot(
+    val controlState: SimulationControlState = SimulationControlState(),
+    val activePreset: LocationPreset? = null,
+)

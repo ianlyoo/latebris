@@ -28,9 +28,6 @@
         <meta-data
             android:name="xposedminversion"
             android:value="93" />
-        <meta-data
-            android:name="xposedscope"
-            android:value="com.example.gpstick" />
 
         <activity
             android:name=".ui.MainActivity"
@@ -58,7 +55,7 @@
             android:name=".service.SimulationStateProvider"
             android:authorities="com.example.gpstick.simulation.state"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="true" />
     </application>
 
 </manifest>

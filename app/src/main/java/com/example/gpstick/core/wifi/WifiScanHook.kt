@@ -3,8 +3,8 @@ package com.example.gpstick.core.wifi
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.SystemClock
+import android.util.Log
 import com.example.gpstick.data.preset.LocationPreset
-import com.example.gpstick.data.preset.PresetManager
 import com.example.gpstick.data.preset.WifiNetwork
 import com.example.gpstick.service.SimulationStateStore
 import de.robv.android.xposed.IXposedHookLoadPackage
@@ -14,37 +14,37 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 class WifiScanHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        if (lpparam.packageName != TARGET_PACKAGE) {
-            return
-        }
+        runCatching {
+            XposedHelpers.findAndHookMethod(
+                WifiManager::class.java,
+                "getScanResults",
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val preset = resolveActivePreset() ?: return
+                        val wifiNetworks = preset.wifiNetworks
+                        if (wifiNetworks.isEmpty()) {
+                            return
+                        }
 
-        XposedHelpers.findAndHookMethod(
-            WifiManager::class.java,
-            "getScanResults",
-            object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    val preset = resolveActivePreset() ?: return
-                    val wifiNetworks = preset.wifiNetworks
-                    if (wifiNetworks.isEmpty()) {
-                        return
+                        param.result = ArrayList(wifiNetworks.map(::toScanResult))
                     }
-
-                    param.result = ArrayList(wifiNetworks.map(::toScanResult))
-                }
-            },
-        )
+                },
+            )
+            Log.i(TAG, "Installed Wi-Fi scan hook for ${lpparam.packageName}")
+        }.onFailure { throwable ->
+            Log.w(TAG, "Failed to install Wi-Fi scan hook for ${lpparam.packageName}", throwable)
+        }
     }
 
     private fun resolveActivePreset(): LocationPreset? {
         val context = currentApplicationContext() ?: return null
-        val sharedState = SimulationStateStore.readFromProvider(context)
+        val snapshot = SimulationStateStore.readSnapshotFromProvider(context)
+        val sharedState = snapshot.controlState
         if (!sharedState.isRunning || !sharedState.activeFeaturesEnabled || !sharedState.activeWifiMockEnabled) {
             return null
         }
 
-        PresetManager.initialize(context)
-        val presetId = sharedState.activePresetId ?: return null
-        return PresetManager.getPreset(presetId)
+        return snapshot.activePreset
     }
 
     private fun toScanResult(network: WifiNetwork): ScanResult {
@@ -71,6 +71,6 @@ class WifiScanHook : IXposedHookLoadPackage {
     }.getOrNull()
 
     private companion object {
-        const val TARGET_PACKAGE = "com.example.gpstick"
+        const val TAG = "GpStickWifiHook"
     }
 }

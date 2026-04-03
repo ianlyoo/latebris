@@ -5,9 +5,9 @@ import android.telephony.CellInfoLte
 import android.telephony.CellLocation
 import android.telephony.TelephonyManager
 import android.telephony.gsm.GsmCellLocation
+import android.util.Log
 import com.example.gpstick.data.preset.CellTower
 import com.example.gpstick.data.preset.LocationPreset
-import com.example.gpstick.data.preset.PresetManager
 import com.example.gpstick.service.SimulationStateStore
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
@@ -17,50 +17,50 @@ import kotlin.random.Random
 
 class CellInfoHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        if (lpparam.packageName != TARGET_PACKAGE) {
-            return
+        runCatching {
+            XposedHelpers.findAndHookMethod(
+                TelephonyManager::class.java,
+                "getAllCellInfo",
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val towers = resolveActivePreset()?.cellTowers.orEmpty()
+                        if (towers.isEmpty()) {
+                            return
+                        }
+
+                        val mockedInfos = towers.mapNotNull(::buildCellInfoLte)
+                        if (mockedInfos.isNotEmpty()) {
+                            param.result = ArrayList(mockedInfos)
+                        }
+                    }
+                },
+            )
+
+            XposedHelpers.findAndHookMethod(
+                TelephonyManager::class.java,
+                "getCellLocation",
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val tower = resolveActivePreset()?.cellTowers?.firstOrNull() ?: return
+                        param.result = buildCellLocation(tower) ?: param.result
+                    }
+                },
+            )
+            Log.i(TAG, "Installed cell hooks for ${lpparam.packageName}")
+        }.onFailure { throwable ->
+            Log.w(TAG, "Failed to install cell hooks for ${lpparam.packageName}", throwable)
         }
-
-        XposedHelpers.findAndHookMethod(
-            TelephonyManager::class.java,
-            "getAllCellInfo",
-            object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    val towers = resolveActivePreset()?.cellTowers.orEmpty()
-                    if (towers.isEmpty()) {
-                        return
-                    }
-
-                    val mockedInfos = towers.mapNotNull(::buildCellInfoLte)
-                    if (mockedInfos.isNotEmpty()) {
-                        param.result = ArrayList(mockedInfos)
-                    }
-                }
-            },
-        )
-
-        XposedHelpers.findAndHookMethod(
-            TelephonyManager::class.java,
-            "getCellLocation",
-            object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    val tower = resolveActivePreset()?.cellTowers?.firstOrNull() ?: return
-                    param.result = buildCellLocation(tower) ?: param.result
-                }
-            },
-        )
     }
 
     private fun resolveActivePreset(): LocationPreset? {
         val context = currentApplicationContext() ?: return null
-        val sharedState = SimulationStateStore.readFromProvider(context)
+        val snapshot = SimulationStateStore.readSnapshotFromProvider(context)
+        val sharedState = snapshot.controlState
         if (!sharedState.isRunning || !sharedState.activeFeaturesEnabled || !sharedState.activeCellMockEnabled) {
             return null
         }
 
-        PresetManager.initialize(context)
-        val presetId = sharedState.activePresetId ?: return null
-        return PresetManager.getPreset(presetId)
+        return snapshot.activePreset
     }
 
     private fun buildCellInfoLte(tower: CellTower): CellInfoLte? = runCatching {
@@ -201,7 +201,7 @@ class CellInfoHook : IXposedHookLoadPackage {
     }.getOrNull()
 
     private companion object {
-        const val TARGET_PACKAGE = "com.example.gpstick"
+        const val TAG = "GpStickCellHook"
         val RANDOM = Random(System.currentTimeMillis())
     }
 }

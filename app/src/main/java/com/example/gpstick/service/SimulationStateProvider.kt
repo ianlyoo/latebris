@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import com.example.gpstick.data.preset.FilePresetRepository
 
 class SimulationStateProvider : ContentProvider() {
     override fun onCreate(): Boolean = true
@@ -16,8 +17,12 @@ class SimulationStateProvider : ContentProvider() {
 
         val context = context ?: return Bundle.EMPTY
         val application = context.applicationContext as? com.example.gpstick.ui.GpStickApplication
-        return application?.appContainer?.simulationStateStore?.asBundle()
-            ?: SimulationStateStore.getInstance(context).asBundle()
+        val appContainer = application?.appContainer
+        val stateStore = appContainer?.simulationStateStore ?: SimulationStateStore.getInstance(context)
+        val snapshot = stateStore.load()
+        val presetRepository = appContainer?.presetRepository ?: FilePresetRepository(context)
+        val activePreset = snapshot.activePresetId?.let(presetRepository::getPreset)
+        return stateStore.asBundle(activePreset)
     }
 
     override fun query(

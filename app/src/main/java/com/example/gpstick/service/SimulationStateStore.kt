@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import com.example.gpstick.data.preset.LocationPreset
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -90,7 +92,7 @@ class SimulationStateStore private constructor(context: Context) {
         _state.value = load()
     }
 
-    fun asBundle(): Bundle = Bundle().apply {
+    fun asBundle(activePreset: LocationPreset? = null): Bundle = Bundle().apply {
         val snapshot = load()
         putBoolean(KEY_RUNNING, snapshot.isRunning)
         putString(KEY_PRESET_ID, snapshot.activePresetId)
@@ -104,6 +106,7 @@ class SimulationStateStore private constructor(context: Context) {
         putBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, snapshot.activeWifiMockEnabled)
         putBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, snapshot.activeCellMockEnabled)
         putBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, snapshot.activeMovementSimulationEnabled)
+        putString(KEY_ACTIVE_PRESET_JSON, activePreset?.let(gson::toJson))
     }
 
     private fun readFromPreferences(): SimulationControlState {
@@ -147,8 +150,10 @@ class SimulationStateStore private constructor(context: Context) {
         const val KEY_ACTIVE_WIFI_MOCK_ENABLED = "active_wifi_mock_enabled"
         const val KEY_ACTIVE_CELL_MOCK_ENABLED = "active_cell_mock_enabled"
         const val KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED = "active_movement_simulation_enabled"
+        const val KEY_ACTIVE_PRESET_JSON = "active_preset_json"
         const val METHOD_GET_STATE = "getSimulationState"
         const val AUTHORITY = "com.example.gpstick.simulation.state"
+        private val gson = Gson()
 
         val STATE_KEY_SET = setOf(
             KEY_RUNNING,
@@ -175,7 +180,23 @@ class SimulationStateStore private constructor(context: Context) {
             }
 
         fun readFromProvider(context: Context): SimulationControlState {
-            val bundle = context.contentResolver.call(CONTENT_URI, METHOD_GET_STATE, null, null)
+            return readSnapshotFromProvider(context).controlState
+        }
+
+        fun readSnapshotFromProvider(context: Context): SimulationStateSnapshot {
+            val bundle = runCatching {
+                context.contentResolver.call(CONTENT_URI, METHOD_GET_STATE, null, null)
+            }.getOrNull()
+
+            val controlState = decodeControlState(bundle)
+            val activePreset = bundle?.getString(KEY_ACTIVE_PRESET_JSON)?.let(::decodePreset)
+            return SimulationStateSnapshot(
+                controlState = controlState,
+                activePreset = activePreset,
+            )
+        }
+
+        private fun decodeControlState(bundle: Bundle?): SimulationControlState {
             val pendingSettings = SimulationFeatureSettings(
                 featuresEnabled = bundle?.getBoolean(KEY_PENDING_FEATURES_ENABLED, true) == true,
                 isGpsMockEnabled = bundle?.getBoolean(KEY_PENDING_GPS_MOCK_ENABLED, true) == true,
@@ -196,6 +217,12 @@ class SimulationStateStore private constructor(context: Context) {
                     isMovementSimulationEnabled = bundle?.getBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, pendingSettings.isMovementSimulationEnabled) == true,
                 ),
             )
+        }
+
+        private fun decodePreset(raw: String): LocationPreset? {
+            return runCatching {
+                gson.fromJson(raw, LocationPreset::class.java)
+            }.getOrNull()
         }
     }
 }
