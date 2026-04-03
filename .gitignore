@@ -6,3 +6,4 @@
 /captures/
 /.kotlin/
 app/build/
+**/build/
