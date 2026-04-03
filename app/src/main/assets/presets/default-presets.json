@@ -1,0 +1,88 @@
+[
+  {
+    "id": "urban-core",
+    "name": "Urban core",
+    "summary": "Dense city route with mixed GPS drift and handoff churn.",
+    "gps": {
+      "latitude": 37.5665,
+      "longitude": 126.978,
+      "altitude": 38.4,
+      "accuracyMeters": 12.5
+    },
+    "wifiNetworks": [
+      {
+        "bssid": "00:11:22:33:44:55",
+        "ssid": "qa-lab-a",
+        "level": -51,
+        "frequency": 2412
+      },
+      {
+        "bssid": "66:77:88:99:AA:BB",
+        "ssid": "qa-lab-b",
+        "level": -59,
+        "frequency": 5200
+      }
+    ],
+    "cellTowers": [
+      {
+        "mcc": 450,
+        "mnc": 5,
+        "ci": 22011,
+        "pci": 101,
+        "tac": 101,
+        "earfcn": 1800
+      }
+    ]
+  },
+  {
+    "id": "suburban-loop",
+    "name": "Suburban loop",
+    "summary": "Steady driving profile with moderate speed and stable coverage.",
+    "gps": {
+      "latitude": 37.3943,
+      "longitude": 127.1112,
+      "altitude": 22.1,
+      "accuracyMeters": 9.8
+    },
+    "wifiNetworks": [
+      {
+        "bssid": "10:20:30:40:50:60",
+        "ssid": "suburb-gateway",
+        "level": -63,
+        "frequency": 5745
+      }
+    ],
+    "cellTowers": [
+      {
+        "mcc": 450,
+        "mnc": 8,
+        "ci": 99311,
+        "pci": 210,
+        "tac": 210,
+        "earfcn": 635334
+      }
+    ]
+  },
+  {
+    "id": "rural-dropout",
+    "name": "Rural dropout",
+    "summary": "Sparse coverage path to validate recovery after signal gaps.",
+    "gps": {
+      "latitude": 36.3504,
+      "longitude": 127.3845,
+      "altitude": 71.7,
+      "accuracyMeters": 24.0
+    },
+    "wifiNetworks": [],
+    "cellTowers": [
+      {
+        "mcc": 450,
+        "mnc": 6,
+        "ci": 7310,
+        "pci": 402,
+        "tac": 402,
+        "earfcn": 950
+      }
+    ]
+  }
+]
