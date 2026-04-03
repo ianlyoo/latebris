@@ -1,36 +1,34 @@
 package com.example.gpstick.core.gps
 
 import android.annotation.SuppressLint
-import android.app.NotificationManager
-import android.app.Service
 import android.content.Context
-import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.location.provider.ProviderProperties
-import android.content.pm.PackageManager
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.example.gpstick.data.preset.LocationPreset
-import com.example.gpstick.data.preset.PresetManager
-import com.example.gpstick.service.SimulationStateStore
-import com.example.gpstick.service.ServiceCommandFactory
-import com.example.gpstick.service.SimulationNotificationFactory
 import com.google.android.gms.location.LocationServices
 import kotlin.random.Random
 
-class GpsMockService : Service() {
+class GpsMockRunner(
+    context: Context,
+    private val onRuntimeFailure: () -> Unit = {},
+) {
+    private val appContext = context.applicationContext
     private val handler = Handler(Looper.getMainLooper())
     private val random = Random(SystemClock.elapsedRealtime())
+    private val locationManager = appContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-    private lateinit var locationManager: LocationManager
-    private lateinit var notificationFactory: SimulationNotificationFactory
     private var simulatedLatitude = 0.0
     private var simulatedLongitude = 0.0
     private var movementInitialized = false
+    private var isInjecting = false
+    private var activePreset: LocationPreset? = null
+    private var activeSettings = com.example.gpstick.service.SimulationFeatureSettings()
 
     private val injectionRunnable = object : Runnable {
         override fun run() {
@@ -38,79 +36,54 @@ class GpsMockService : Service() {
                 return
             }
 
-            injectCurrentPresetLocation()
+            if (!injectCurrentPresetLocation()) {
+                stop()
+                onRuntimeFailure()
+                return
+            }
             scheduleNextInjection()
         }
     }
 
-    private var isInjecting = false
-
-    override fun onCreate() {
-        super.onCreate()
-        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        notificationFactory = SimulationNotificationFactory(this)
-        notificationFactory.ensureChannel()
-        if (!hasLocationPermission()) {
-            stopSelf()
-            return
+    fun start(
+        preset: LocationPreset,
+        settings: com.example.gpstick.service.SimulationFeatureSettings,
+    ): Boolean {
+        stop()
+        if (!settings.featuresEnabled || !settings.isGpsMockEnabled || !hasLocationPermission()) {
+            return false
         }
-        registerTestProviders()
-        enableFusedMockMode()
+
+        activePreset = preset
+        activeSettings = settings
+        movementInitialized = false
+        if (!registerTestProviders()) {
+            stop()
+            return false
+        }
+        if (!enableFusedMockMode()) {
+            stop()
+            return false
+        }
+        isInjecting = true
+        return injectCurrentPresetLocation().also { started ->
+            if (started) {
+                scheduleNextInjection()
+            } else {
+                stop()
+            }
+        }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ServiceCommandFactory.ACTION_START_GPS_MOCK -> startGpsMocking(startId)
-            ServiceCommandFactory.ACTION_STOP_GPS_MOCK -> stopSelf(startId)
-            null -> restoreGpsMocking(startId)
-        }
-        return START_STICKY
-    }
-
-    override fun onDestroy() {
+    fun stop() {
         isInjecting = false
         handler.removeCallbacks(injectionRunnable)
+        activePreset = null
+        movementInitialized = false
         clearTestProviders()
         if (hasLocationPermission()) {
             disableFusedMockMode()
         }
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        super.onDestroy()
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    private fun startGpsMocking(startId: Int) {
-        val activePreset = resolveActivePreset()
-        if (activePreset == null) {
-            stopSelf(startId)
-            return
-        }
-
-        val sharedState = SimulationStateStore.readFromProvider(this)
-        if (!sharedState.activeFeaturesEnabled || !sharedState.activeGpsMockEnabled) {
-            stopSelf(startId)
-            return
-        }
-
-        startForeground(
-            SimulationNotificationFactory.NOTIFICATION_ID,
-            notificationFactory.buildActiveNotification(activePreset, sharedState),
-        )
-        isInjecting = true
-        handler.removeCallbacks(injectionRunnable)
-        injectCurrentPresetLocation()
-        scheduleNextInjection()
-    }
-
-    private fun restoreGpsMocking(startId: Int) {
-        val sharedState = SimulationStateStore.readFromProvider(this)
-        if (!sharedState.isRunning || !sharedState.activeGpsMockEnabled || !sharedState.activeFeaturesEnabled) {
-            stopSelf(startId)
-            return
-        }
-
-        startGpsMocking(startId)
     }
 
     private fun scheduleNextInjection() {
@@ -118,40 +91,31 @@ class GpsMockService : Service() {
         handler.postDelayed(injectionRunnable, delayMillis)
     }
 
-    private fun injectCurrentPresetLocation() {
-        val preset = resolveActivePreset() ?: return
-        val sharedState = SimulationStateStore.readFromProvider(this)
-        if (!sharedState.activeFeaturesEnabled || !sharedState.activeGpsMockEnabled) {
-            return
+    private fun injectCurrentPresetLocation(): Boolean {
+        val preset = activePreset ?: return false
+        if (!activeSettings.featuresEnabled || !activeSettings.isGpsMockEnabled || !hasLocationPermission()) {
+            return false
         }
-        if (!hasLocationPermission()) {
-            stopSelf()
-            return
-        }
+
         val gpsLocation = createLocation(LocationManager.GPS_PROVIDER, preset)
         val networkLocation = createLocation(LocationManager.NETWORK_PROVIDER, preset)
 
-        runCatching {
+        val providerInjectionSucceeded = runCatching {
             locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, gpsLocation)
             locationManager.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, networkLocation)
-        }
-        
-        if (sharedState.activeFeaturesEnabled && sharedState.activeGpsMockEnabled) {
-            pushFusedMockLocation(gpsLocation)
+        }.isSuccess
+
+        if (!providerInjectionSucceeded) {
+            return false
         }
 
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(
-            SimulationNotificationFactory.NOTIFICATION_ID,
-            notificationFactory.buildActiveNotification(preset, sharedState),
-        )
+        return pushFusedMockLocation(gpsLocation)
     }
 
     private fun createLocation(provider: String, preset: LocationPreset): Location {
-        val sharedState = SimulationStateStore.readFromProvider(this)
-        val isMovementEnabled = sharedState.activeMovementSimulationEnabled &&
-            sharedState.activeFeaturesEnabled &&
-            sharedState.activeGpsMockEnabled
+        val isMovementEnabled = activeSettings.isMovementSimulationEnabled &&
+            activeSettings.featuresEnabled &&
+            activeSettings.isGpsMockEnabled
         val coordinates = if (isMovementEnabled) {
             nextMovementCoordinate(preset.gps.latitude, preset.gps.longitude)
         } else {
@@ -190,16 +154,17 @@ class GpsMockService : Service() {
         return if (random.nextBoolean()) magnitude else -magnitude
     }
 
-    private fun registerTestProviders() {
-        ensureTestProvider(LocationManager.GPS_PROVIDER)
-        ensureTestProvider(LocationManager.NETWORK_PROVIDER)
+    private fun registerTestProviders(): Boolean {
+        val gpsRegistered = ensureTestProvider(LocationManager.GPS_PROVIDER)
+        val networkRegistered = ensureTestProvider(LocationManager.NETWORK_PROVIDER)
+        return gpsRegistered && networkRegistered
     }
 
-    private fun ensureTestProvider(provider: String) {
+    private fun ensureTestProvider(provider: String): Boolean {
         runCatching {
             locationManager.removeTestProvider(provider)
         }
-        runCatching {
+        val added = runCatching {
             locationManager.addTestProvider(
                 provider,
                 false,
@@ -212,10 +177,11 @@ class GpsMockService : Service() {
                 ProviderProperties.POWER_USAGE_LOW,
                 ProviderProperties.ACCURACY_FINE,
             )
-        }
-        runCatching {
+        }.isSuccess
+        val enabled = runCatching {
             locationManager.setTestProviderEnabled(provider, true)
-        }
+        }.isSuccess
+        return added && enabled
     }
 
     private fun clearTestProviders() {
@@ -229,44 +195,35 @@ class GpsMockService : Service() {
         }
     }
 
-    private fun resolveActivePreset(): LocationPreset? {
-        PresetManager.getActivePreset()?.let { return it }
-
-        val sharedState = SimulationStateStore.readFromProvider(this)
-        val presetId = sharedState.activePresetId ?: return null
-        PresetManager.initialize(this)
-        return PresetManager.getPreset(presetId)?.also(PresetManager::activatePreset)
-    }
-
     @SuppressLint("MissingPermission")
-    private fun enableFusedMockMode() {
-        runCatching {
-            LocationServices.getFusedLocationProviderClient(this).setMockMode(true)
-        }
+    private fun enableFusedMockMode(): Boolean {
+        return runCatching {
+            LocationServices.getFusedLocationProviderClient(appContext).setMockMode(true)
+        }.isSuccess
     }
 
     @SuppressLint("MissingPermission")
     private fun disableFusedMockMode() {
         runCatching {
-            LocationServices.getFusedLocationProviderClient(this).setMockMode(false)
+            LocationServices.getFusedLocationProviderClient(appContext).setMockMode(false)
         }
     }
 
     @SuppressLint("MissingPermission")
-    private fun pushFusedMockLocation(location: Location) {
-        runCatching {
-            LocationServices.getFusedLocationProviderClient(this)
+    private fun pushFusedMockLocation(location: Location): Boolean {
+        return runCatching {
+            LocationServices.getFusedLocationProviderClient(appContext)
                 .setMockLocation(location)
-        }
+        }.isSuccess
     }
 
     private fun hasLocationPermission(): Boolean {
         val fineGranted = ContextCompat.checkSelfPermission(
-            this,
+            appContext,
             android.Manifest.permission.ACCESS_FINE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
         val coarseGranted = ContextCompat.checkSelfPermission(
-            this,
+            appContext,
             android.Manifest.permission.ACCESS_COARSE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
         return fineGranted || coarseGranted

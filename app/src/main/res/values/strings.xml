@@ -1,10 +1,7 @@
 <resources>
     <string name="app_name">Latebris</string>
-    <string name="notification_channel_name">GPS mock status</string>
-    <string name="notification_channel_description">Shows active internal QA GPS mock simulation status</string>
-    <string name="notification_title">Latebris GPS simulation active</string>
-    <string name="notification_text_template">Latebris GPS active · %1$s · %2$s</string>
-    <string name="control_notification_title">Latebris simulator active</string>
-    <string name="control_notification_text_template">Running in background · %1$s · %2$s</string>
-    <string name="control_notification_stop_action">Stop</string>
+    <string name="notification_channel_name">Simulation status</string>
+    <string name="notification_channel_description">Shows whether the internal QA simulation is running</string>
+    <string name="notification_title">Latebris simulation running</string>
+    <string name="notification_text">Tap to open the app</string>
 </resources>
