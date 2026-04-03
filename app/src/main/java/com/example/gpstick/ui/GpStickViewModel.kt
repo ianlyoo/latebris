@@ -7,11 +7,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.gpstick.data.preset.CapturedDeviceState
 import com.example.gpstick.data.preset.CellTower
+import com.example.gpstick.data.preset.DeviceStateCaptureDataSource
 import com.example.gpstick.data.preset.GpsPreset
 import com.example.gpstick.data.preset.LocationPreset
 import com.example.gpstick.data.preset.PresetRepository
 import com.example.gpstick.data.preset.WifiNetwork
-import com.example.gpstick.data.preset.DeviceStateCaptureRepository
 import com.example.gpstick.service.ForegroundServiceController
 import com.example.gpstick.service.SimulationControlState
 import com.example.gpstick.service.SimulationFeatureSettings
@@ -20,6 +20,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -100,6 +104,10 @@ enum class SimulationState {
     Running,
 }
 
+sealed interface GpStickUiEvent {
+    data class ShowMessage(val message: String) : GpStickUiEvent
+}
+
 @Immutable
 data class GpStickUiState(
     val presets: List<PresetUiModel> = emptyList(),
@@ -136,11 +144,21 @@ class GpStickViewModel(
     private val presetRepository: PresetRepository,
     private val serviceController: ForegroundServiceController,
     private val simulationStateStore: SimulationStateStore,
-    private val deviceStateCaptureRepository: DeviceStateCaptureRepository,
+    private val deviceStateCaptureRepository: DeviceStateCaptureDataSource,
 ) : ViewModel() {
     private val viewModelScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val initialSimulationState = simulationStateStore.load()
     private val initialPresets = presetRepository.getPresets()
+    private val _events = MutableSharedFlow<GpStickUiEvent>(
+        extraBufferCapacity = 16,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val events: SharedFlow<GpStickUiEvent> = _events.asSharedFlow()
+    private var lastHandledFailureEventId = if (initialSimulationState.failureMessage == null) {
+        initialSimulationState.failureEventId
+    } else {
+        initialSimulationState.failureEventId - 1
+    }
 
     var uiState by mutableStateOf(
         GpStickUiState(
@@ -174,6 +192,7 @@ class GpStickViewModel(
                     activePresetId = state.activePresetId,
                     simulationState = state,
                 )
+                maybeEmitFailureMessage(state)
             }
             .launchIn(viewModelScope)
     }
@@ -198,6 +217,7 @@ class GpStickViewModel(
 
     fun captureCurrentDeviceState(onCaptured: (Boolean) -> Unit) {
         if (uiState.simulationState == SimulationState.Running) {
+            emitUiEvent(GpStickUiEvent.ShowMessage("Stop the current simulation before capturing device state."))
             onCaptured(false)
             return
         }
@@ -208,6 +228,11 @@ class GpStickViewModel(
             }
 
             if (capturedState == null) {
+                emitUiEvent(
+                    GpStickUiEvent.ShowMessage(
+                        "Unable to capture current state. Check location permission and current device location.",
+                    ),
+                )
                 onCaptured(false)
                 return@launch
             }
@@ -369,13 +394,24 @@ class GpStickViewModel(
     }
 
     fun startSimulation() {
-        if (uiState.simulationState == SimulationState.Running || !uiState.canStartSimulation) {
+        if (uiState.simulationState == SimulationState.Running) {
+            emitUiEvent(GpStickUiEvent.ShowMessage("Simulation is already running."))
             return
         }
 
-        val selectedPreset = presetRepository.getPreset(uiState.selectedPresetId ?: return) ?: return
+        if (!uiState.canStartSimulation) {
+            emitUiEvent(GpStickUiEvent.ShowMessage("Cannot start: permissions or features are not ready."))
+            return
+        }
 
-        serviceController.start(selectedPreset)
+        val selectedPreset = uiState.selectedPresetId?.let(presetRepository::getPreset) ?: run {
+            emitUiEvent(GpStickUiEvent.ShowMessage("No preset selected."))
+            return
+        }
+
+        if (!serviceController.start(selectedPreset)) {
+            emitUiEvent(GpStickUiEvent.ShowMessage("Unable to start simulation. Check required permissions and active features."))
+        }
     }
 
     fun updateRuntimePermissionState(
@@ -409,6 +445,7 @@ class GpStickViewModel(
 
     fun stopSimulation() {
         if (uiState.simulationState == SimulationState.Stopped) {
+            emitUiEvent(GpStickUiEvent.ShowMessage("Simulation is already stopped."))
             return
         }
 
@@ -427,7 +464,7 @@ class GpStickViewModel(
     private fun refreshPresetList(
         selectedPresetId: String? = uiState.selectedPresetId,
         activePresetId: String? = uiState.activePresetId,
-        simulationState: SimulationControlState = initialSimulationState,
+        simulationState: SimulationControlState = simulationStateStore.state.value,
     ) {
         val presets = presetRepository.getPresets().map(LocationPreset::toUiModel)
         val presetIds = presets.map(PresetUiModel::id).toSet()
@@ -462,6 +499,20 @@ class GpStickViewModel(
                 simulationState = simulationState,
             ),
         )
+    }
+
+    private fun emitUiEvent(event: GpStickUiEvent) {
+        _events.tryEmit(event)
+    }
+
+    private fun maybeEmitFailureMessage(state: SimulationControlState) {
+        val failureMessage = state.failureMessage ?: return
+        if (state.failureEventId <= lastHandledFailureEventId) {
+            return
+        }
+
+        lastHandledFailureEventId = state.failureEventId
+        emitUiEvent(GpStickUiEvent.ShowMessage(failureMessage))
     }
 
     private fun canStartSimulation(

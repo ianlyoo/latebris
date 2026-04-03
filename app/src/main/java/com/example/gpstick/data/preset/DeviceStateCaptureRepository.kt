@@ -20,9 +20,14 @@ data class CapturedDeviceState(
     val cellTowers: List<CellTower>,
 )
 
-class DeviceStateCaptureRepository(context: Context) {
+interface DeviceStateCaptureDataSource {
+    fun captureCurrentState(): CapturedDeviceState?
+}
+
+class DeviceStateCaptureRepository(context: Context) : DeviceStateCaptureDataSource {
     private val appContext = context.applicationContext
 
+    override
     fun captureCurrentState(): CapturedDeviceState? {
         val location = captureLocation() ?: return null
 
