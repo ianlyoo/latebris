@@ -690,19 +690,36 @@ private fun buildPresetSummary(
 private fun Double.toEditorNumber(): String = toString()
 
 private fun String.toEditorDoubleOrNull(): Double? =
-    normalizeDecimalInput().toDoubleOrNull()
+    normalizeDecimalInputOrNull()?.toDoubleOrNull()
 
-private fun String.normalizeDecimalInput(): String {
-    val normalized = trim().let { value ->
-        buildString {
-            value.forEach { char ->
-                when {
-                    char.decimalDigitOrNull() != null -> append(char.decimalDigitOrNull())
-                    char.isMinusSign() && isEmpty() -> append('-')
-                    char.isDecimalSeparator() && '.' !in this -> append('.')
+private fun String.normalizeDecimalInputOrNull(): String? {
+    val value = trim()
+    if (value.isEmpty()) {
+        return null
+    }
+
+    var hasDigit = false
+    var hasDecimalSeparator = false
+    val normalized = buildString {
+        value.forEachIndexed { index, char ->
+            val digit = char.decimalDigitOrNull()
+            when {
+                digit != null -> {
+                    append(digit)
+                    hasDigit = true
                 }
+                char.isMinusSign() && index == 0 -> append('-')
+                char.isDecimalSeparator() && !hasDecimalSeparator -> {
+                    append('.')
+                    hasDecimalSeparator = true
+                }
+                else -> return null
             }
         }
+    }
+
+    if (!hasDigit) {
+        return null
     }
 
     return when {

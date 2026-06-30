@@ -6,7 +6,7 @@ on:
       tag:
         description: Release tag
         required: true
-        default: v0.1.0
+        default: v0.1.1
 
 permissions:
   contents: write
@@ -28,6 +28,14 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Check release tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          VERSION_NAME="$(grep -E 'versionName = ' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')"
+          test "$TAG" = "v$VERSION_NAME"
 
       - name: Restore signing keystore
         env:
