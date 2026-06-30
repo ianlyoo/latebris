@@ -289,15 +289,15 @@ class GpStickViewModel(
     }
 
     fun updateEditorLatitude(value: String) {
-        updateEditorState { copy(latitude = value.toSignedDecimalInput()) }
+        updateEditorState { copy(latitude = value) }
     }
 
     fun updateEditorLongitude(value: String) {
-        updateEditorState { copy(longitude = value.toSignedDecimalInput()) }
+        updateEditorState { copy(longitude = value) }
     }
 
     fun updateEditorAltitude(value: String) {
-        updateEditorState { copy(altitude = value.toSignedDecimalInput()) }
+        updateEditorState { copy(altitude = value) }
     }
 
     fun addWifiNetworkRow() {
@@ -536,9 +536,9 @@ class GpStickViewModel(
             return null
         }
 
-        val latitude = presetEditorState.latitude.toDoubleOrNull() ?: return null
-        val longitude = presetEditorState.longitude.toDoubleOrNull() ?: return null
-        val altitude = presetEditorState.altitude.toDoubleOrNull() ?: return null
+        val latitude = presetEditorState.latitude.toEditorDoubleOrNull() ?: return null
+        val longitude = presetEditorState.longitude.toEditorDoubleOrNull() ?: return null
+        val altitude = presetEditorState.altitude.toEditorDoubleOrNull() ?: return null
         val id = presetEditorState.id ?: UUID.randomUUID().toString()
         val wifiNetworks = presetEditorState.wifiNetworks.mapNotNull(WifiNetworkEditorUiState::toWifiNetwork)
         val cellTowers = presetEditorState.cellTowers.mapNotNull(CellTowerEditorUiState::toCellTower)
@@ -619,9 +619,9 @@ private fun PresetEditorUiState.validationMessage(): String? {
         return "Enter a preset name."
     }
 
-    val latitudeValue = latitude.toDoubleOrNull()
-    val longitudeValue = longitude.toDoubleOrNull()
-    val altitudeValue = altitude.toDoubleOrNull()
+    val latitudeValue = latitude.toEditorDoubleOrNull()
+    val longitudeValue = longitude.toEditorDoubleOrNull()
+    val altitudeValue = altitude.toEditorDoubleOrNull()
     if (latitudeValue == null || latitudeValue !in -90.0..90.0) {
         return "Enter a valid latitude between -90 and 90."
     }
@@ -689,21 +689,26 @@ private fun buildPresetSummary(
 
 private fun Double.toEditorNumber(): String = toString()
 
-private fun String.toSignedDecimalInput(): String {
-    val filtered = buildString {
-        forEachIndexed { index, char ->
-            when {
-                char.decimalDigitOrNull() != null -> append(char.decimalDigitOrNull())
-                char.isMinusSign() && index == 0 && '-' !in this -> append('-')
-                char.isDecimalSeparator() && '.' !in this -> append('.')
+private fun String.toEditorDoubleOrNull(): Double? =
+    normalizeDecimalInput().toDoubleOrNull()
+
+private fun String.normalizeDecimalInput(): String {
+    val normalized = trim().let { value ->
+        buildString {
+            value.forEach { char ->
+                when {
+                    char.decimalDigitOrNull() != null -> append(char.decimalDigitOrNull())
+                    char.isMinusSign() && isEmpty() -> append('-')
+                    char.isDecimalSeparator() && '.' !in this -> append('.')
+                }
             }
         }
     }
 
     return when {
-        filtered.startsWith(".") -> "0$filtered"
-        filtered.startsWith("-.") -> filtered.replaceFirst("-.", "-0.")
-        else -> filtered
+        normalized.startsWith(".") -> "0$normalized"
+        normalized.startsWith("-.") -> normalized.replaceFirst("-.", "-0.")
+        else -> normalized
     }
 }
 

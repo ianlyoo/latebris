@@ -134,9 +134,10 @@ class GpStickViewModelTest {
     fun coordinateEditorFields_normalizeDeviceKeyboardDecimalInput() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val simulationStateStore = prepareStore(context)
+        val repository = InMemoryPresetRepository(emptyList())
 
         val viewModel = GpStickViewModel(
-            presetRepository = InMemoryPresetRepository(emptyList()),
+            presetRepository = repository,
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
             deviceStateCaptureRepository = FakeCaptureRepository(),
@@ -148,10 +149,16 @@ class GpStickViewModelTest {
         viewModel.updateEditorLongitude("−１２６,９７８０")
         viewModel.updateEditorAltitude("１０,５")
 
-        assertEquals("37.5665", viewModel.presetEditorState.latitude)
-        assertEquals("-126.9780", viewModel.presetEditorState.longitude)
-        assertEquals("10.5", viewModel.presetEditorState.altitude)
+        assertEquals("３７,５６６５", viewModel.presetEditorState.latitude)
+        assertEquals("−１２６,９７８０", viewModel.presetEditorState.longitude)
+        assertEquals("１０,５", viewModel.presetEditorState.altitude)
         assertTrue(viewModel.presetEditorState.isSaveEnabled)
+        assertTrue(viewModel.savePresetEdits())
+
+        val savedPreset = repository.getPresets().single()
+        assertEquals(37.5665, savedPreset.gps.latitude, 0.0)
+        assertEquals(-126.9780, savedPreset.gps.longitude, 0.0)
+        assertEquals(10.5, savedPreset.gps.altitude, 0.0)
     }
 
     private suspend fun captureFirstUiEventMessage(viewModel: GpStickViewModel): String {
