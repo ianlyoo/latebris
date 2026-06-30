@@ -13,6 +13,15 @@ val escapedOpenCellIdApiKey = openCellIdApiKey
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
 
+val signingStoreFile = providers.environmentVariable("ANDROID_SIGNING_STORE_FILE")
+val signingStorePassword = providers.environmentVariable("ANDROID_SIGNING_STORE_PASSWORD")
+val signingKeyAlias = providers.environmentVariable("ANDROID_SIGNING_KEY_ALIAS")
+val signingKeyPassword = providers.environmentVariable("ANDROID_SIGNING_KEY_PASSWORD")
+val hasReleaseSigning = signingStoreFile.isPresent &&
+    signingStorePassword.isPresent &&
+    signingKeyAlias.isPresent &&
+    signingKeyPassword.isPresent
+
 android {
     namespace = "com.example.gpstick"
     compileSdk = 35
@@ -31,9 +40,23 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = file(signingStoreFile.get())
+                storePassword = signingStorePassword.get()
+                keyAlias = signingKeyAlias.get()
+                keyPassword = signingKeyPassword.get()
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

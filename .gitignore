@@ -7,3 +7,5 @@
 /.kotlin/
 app/build/
 **/build/
+*.jks
+*.keystore
