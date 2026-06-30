@@ -693,9 +693,9 @@ private fun String.toSignedDecimalInput(): String {
     val filtered = buildString {
         forEachIndexed { index, char ->
             when {
-                char.isDigit() -> append(char)
-                char == '-' && index == 0 && '-' !in this -> append(char)
-                char == '.' && '.' !in this -> append(char)
+                char.decimalDigitOrNull() != null -> append(char.decimalDigitOrNull())
+                char.isMinusSign() && index == 0 && '-' !in this -> append('-')
+                char.isDecimalSeparator() && '.' !in this -> append('.')
             }
         }
     }
@@ -707,11 +707,30 @@ private fun String.toSignedDecimalInput(): String {
     }
 }
 
+private fun Char.decimalDigitOrNull(): Int? =
+    Character.digit(this, 10).takeIf { it in 0..9 }
+
+private fun Char.isMinusSign(): Boolean = this == '-' ||
+    this == '\u2212' ||
+    this == '\u2010' ||
+    this == '\u2011' ||
+    this == '\u2012' ||
+    this == '\u2013' ||
+    this == '\u2014' ||
+    this == '\uFE63' ||
+    this == '\uFF0D'
+
+private fun Char.isDecimalSeparator(): Boolean = this == '.' ||
+    this == ',' ||
+    this == '\u066B' ||
+    this == '\uFF0E' ||
+    this == '\uFF0C'
+
 private fun String.toSignedIntInput(): String = buildString {
     forEachIndexed { index, char ->
         when {
-            char.isDigit() -> append(char)
-            char == '-' && index == 0 && '-' !in this -> append(char)
+            char.decimalDigitOrNull() != null -> append(char.decimalDigitOrNull())
+            char.isMinusSign() && index == 0 && '-' !in this -> append('-')
         }
     }
 }

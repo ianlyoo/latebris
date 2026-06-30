@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -127,6 +128,30 @@ class GpStickViewModelTest {
             "Unable to start simulation. Check required permissions and active features.",
             messageDeferred.await(),
         )
+    }
+
+    @Test
+    fun coordinateEditorFields_normalizeDeviceKeyboardDecimalInput() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(emptyList()),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        viewModel.openPresetEditor(presetId = null)
+        viewModel.updateEditorName("Seoul")
+        viewModel.updateEditorLatitude("３７,５６６５")
+        viewModel.updateEditorLongitude("−１２６,９７８０")
+        viewModel.updateEditorAltitude("１０,５")
+
+        assertEquals("37.5665", viewModel.presetEditorState.latitude)
+        assertEquals("-126.9780", viewModel.presetEditorState.longitude)
+        assertEquals("10.5", viewModel.presetEditorState.altitude)
+        assertTrue(viewModel.presetEditorState.isSaveEnabled)
     }
 
     private suspend fun captureFirstUiEventMessage(viewModel: GpStickViewModel): String {

@@ -235,6 +235,7 @@ private fun PresetDetailsSection(
             onValueChange = onNameChanged,
             modifier = Modifier.fillMaxWidth(),
             label = "Name",
+            testTag = GpStickTestTags.PRESET_NAME_FIELD,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -246,6 +247,7 @@ private fun PresetDetailsSection(
                 modifier = Modifier.weight(1f),
                 label = "Latitude",
                 keyboardType = KeyboardType.Text,
+                testTag = GpStickTestTags.PRESET_LATITUDE_FIELD,
             )
             EditorTextField(
                 value = state.longitude,
@@ -253,6 +255,7 @@ private fun PresetDetailsSection(
                 modifier = Modifier.weight(1f),
                 label = "Longitude",
                 keyboardType = KeyboardType.Text,
+                testTag = GpStickTestTags.PRESET_LONGITUDE_FIELD,
             )
         }
         EditorTextField(
@@ -261,6 +264,7 @@ private fun PresetDetailsSection(
             modifier = Modifier.fillMaxWidth(),
             label = "Altitude",
             keyboardType = KeyboardType.Text,
+            testTag = GpStickTestTags.PRESET_ALTITUDE_FIELD,
         )
     }
 }
@@ -478,11 +482,12 @@ private fun EditorTextField(
     label: String,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
+    testTag: String? = null,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = if (testTag == null) modifier else modifier.testTag(testTag),
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         singleLine = true,
