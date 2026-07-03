@@ -4,12 +4,23 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val defaultOpenRouteServiceApiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImExMjFjYjI1ODM1NTRlODFiOGFlMzllYjhkZjA2NTNkIiwiaCI6Im11cm11cjY0In0="
+
 val openCellIdApiKey = providers.gradleProperty("OPEN_CELL_ID_API_KEY")
     .orElse(providers.environmentVariable("OPEN_CELL_ID_API_KEY"))
     .orElse("")
     .get()
 
+val openRouteServiceApiKey = providers.gradleProperty("OPEN_ROUTE_SERVICE_API_KEY")
+    .orElse(providers.environmentVariable("OPEN_ROUTE_SERVICE_API_KEY"))
+    .orElse(defaultOpenRouteServiceApiKey)
+    .get()
+
 val escapedOpenCellIdApiKey = openCellIdApiKey
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+
+val escapedOpenRouteServiceApiKey = openRouteServiceApiKey
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
 
@@ -33,6 +44,7 @@ android {
         versionCode = 3
         versionName = "0.1.2"
         buildConfigField("String", "OPEN_CELL_ID_API_KEY", "\"$escapedOpenCellIdApiKey\"")
+        buildConfigField("String", "OPEN_ROUTE_SERVICE_API_KEY", "\"$escapedOpenRouteServiceApiKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

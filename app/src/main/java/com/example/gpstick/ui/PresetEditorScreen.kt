@@ -54,17 +54,10 @@ fun PresetEditorScreen(
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro)) {
-                        Text(
-                            text = if (state.isNew) "Create preset" else "Edit preset",
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        Text(
-                            text = "Tune coordinates, Wi-Fi data, and cell rows in one consistent workspace.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Text(
+                        text = if (state.isNew) "Create preset" else "Edit preset",
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
                 },
                 navigationIcon = {
                     TextButton(

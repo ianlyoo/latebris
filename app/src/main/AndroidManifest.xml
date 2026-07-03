@@ -40,11 +40,25 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".service.LocationProbeActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".service.SimulatorControlService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <receiver
+            android:name=".service.LocationProbeReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.gpstick.action.PROBE_LOCATION" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name=".service.SimulationStateProvider"

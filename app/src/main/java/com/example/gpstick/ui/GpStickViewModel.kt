@@ -13,14 +13,20 @@ import com.example.gpstick.data.preset.LocationPreset
 import com.example.gpstick.data.preset.PresetRepository
 import com.example.gpstick.data.preset.WifiNetwork
 import com.example.gpstick.service.ForegroundServiceController
+import com.example.gpstick.service.MovementPhase
+import com.example.gpstick.service.MovementTransportMode
+import com.example.gpstick.service.ServiceCommandFactory
 import com.example.gpstick.service.SimulationControlState
 import com.example.gpstick.service.SimulationFeatureSettings
 import com.example.gpstick.service.SimulationStateStore
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -33,6 +39,48 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 private const val DEFAULT_ACCURACY_METERS = 12.5f
+private const val MOVE_ARRIVAL_RESET_DELAY_MILLIS = 2_400L
+
+enum class MoveTransportOption(
+    val label: String,
+    val detail: String,
+    val runtimeMode: MovementTransportMode,
+    val minSpeedMetersPerSecond: Float,
+    val maxSpeedMetersPerSecond: Float,
+    val defaultSpeedMetersPerSecond: Float,
+) {
+    Walk(
+        label = "Walk",
+        detail = "Pedestrian pace",
+        runtimeMode = MovementTransportMode.Walk,
+        minSpeedMetersPerSecond = 0.8f,
+        maxSpeedMetersPerSecond = 2.6f,
+        defaultSpeedMetersPerSecond = 1.4f,
+    ),
+    Drive(
+        label = "Drive",
+        detail = "Road traffic",
+        runtimeMode = MovementTransportMode.Drive,
+        minSpeedMetersPerSecond = 4.0f,
+        maxSpeedMetersPerSecond = 33.0f,
+        defaultSpeedMetersPerSecond = 13.9f,
+    ),
+    Transit(
+        label = "Metro",
+        detail = "Public line cadence",
+        runtimeMode = MovementTransportMode.Transit,
+        minSpeedMetersPerSecond = 3.0f,
+        maxSpeedMetersPerSecond = 22.0f,
+        defaultSpeedMetersPerSecond = 8.3f,
+    ),
+}
+
+@Immutable
+data class MoveFormUiState(
+    val destinationPresetId: String? = null,
+    val transportMode: MoveTransportOption = MoveTransportOption.Drive,
+    val speedMetersPerSecond: Float = MoveTransportOption.Drive.defaultSpeedMetersPerSecond,
+)
 
 @Immutable
 data class PresetUiModel(
@@ -128,6 +176,17 @@ data class GpStickUiState(
     val notificationPermissionGranted: Boolean = true,
     val notificationPermissionRequired: Boolean = false,
     val canStartSimulation: Boolean = true,
+    val moveForm: MoveFormUiState = MoveFormUiState(),
+    val movementPhase: MovementPhase = MovementPhase.None,
+    val movementOriginPresetId: String? = null,
+    val movementDestinationPresetId: String? = null,
+    val movementTransportMode: MovementTransportMode? = null,
+    val movementSpeedMetersPerSecond: Double = 0.0,
+    val movementProgress: Double = 0.0,
+    val movementEtaEpochMillis: Long = 0L,
+    val movementCurrentLatitude: Double? = null,
+    val movementCurrentLongitude: Double? = null,
+    val movementCurrentAltitude: Double? = null,
 ) {
     val selectedPreset: PresetUiModel?
         get() = presets.firstOrNull { it.id == selectedPresetId }
@@ -135,9 +194,90 @@ data class GpStickUiState(
     val activePreset: PresetUiModel?
         get() = presets.firstOrNull { it.id == activePresetId }
 
+    val moveDestinationPreset: PresetUiModel?
+        get() = presets.firstOrNull { it.id == moveForm.destinationPresetId }
+
+    val movementOriginPreset: PresetUiModel?
+        get() = presets.firstOrNull { it.id == movementOriginPresetId }
+
+    val movementDestinationPreset: PresetUiModel?
+        get() = presets.firstOrNull { it.id == movementDestinationPresetId }
+
     val permissionsReady: Boolean
         get() = locationPermissionGranted &&
             (!notificationPermissionRequired || notificationPermissionGranted)
+
+    val hasLiveMovementOrigin: Boolean
+        get() = simulationState == SimulationState.Running && activePreset != null
+
+    val showsMoveProgress: Boolean
+        get() = movementPhase == MovementPhase.Routing ||
+            movementPhase == MovementPhase.Moving ||
+            movementPhase == MovementPhase.Arrived
+
+    val canCancelMovement: Boolean
+        get() = movementPhase == MovementPhase.Routing || movementPhase == MovementPhase.Moving
+
+    val movementStartBlockedReason: String?
+        get() = when {
+            simulationState == SimulationState.Running && (!activeFeaturesEnabled || !activeGpsMockEnabled) -> {
+                "Movement needs the live simulation and GPS mock to stay active."
+            }
+
+            simulationState == SimulationState.Stopped && !permissionsReady -> {
+                "Grant the required permissions first. Move can then capture the current device location and auto-start."
+            }
+
+            simulationState == SimulationState.Stopped && (!pendingFeaturesEnabled || !pendingGpsMockEnabled) -> {
+                "Enable simulation features and GPS mock in Options. Move will start the session automatically."
+            }
+
+            simulationState == SimulationState.Running && !hasLiveMovementOrigin -> {
+                "No live origin is available yet. Start or restore a session with an active preset first."
+            }
+
+            moveDestinationPreset == null -> {
+                "Choose a destination preset from your saved library."
+            }
+
+            simulationState == SimulationState.Running && moveDestinationPreset?.id == activePresetId -> {
+                "Choose a destination that differs from the current live origin."
+            }
+
+            else -> null
+        }
+
+    val canStartMovement: Boolean
+        get() = movementStartBlockedReason == null
+
+    private val pendingSettings: SimulationFeatureSettings
+        get() = SimulationFeatureSettings(
+            featuresEnabled = pendingFeaturesEnabled,
+            isGpsMockEnabled = pendingGpsMockEnabled,
+            isWifiMockEnabled = pendingWifiMockEnabled,
+            isCellMockEnabled = pendingCellMockEnabled,
+            isMovementSimulationEnabled = pendingMovementSimulationEnabled,
+        )
+
+    private val activeSettings: SimulationFeatureSettings
+        get() = SimulationFeatureSettings(
+            featuresEnabled = activeFeaturesEnabled,
+            isGpsMockEnabled = activeGpsMockEnabled,
+            isWifiMockEnabled = activeWifiMockEnabled,
+            isCellMockEnabled = activeCellMockEnabled,
+            isMovementSimulationEnabled = activeMovementSimulationEnabled,
+        )
+
+    val hasPendingSettingsChanges: Boolean
+        get() = pendingSettings != activeSettings
+
+    val pendingSettingsKeepAnyMockFeatureEnabled: Boolean
+        get() = pendingSettings.hasAnyMockFeatureEnabled
+
+    val canApplyPendingSettings: Boolean
+        get() = simulationState == SimulationState.Running &&
+            hasPendingSettingsChanges &&
+            pendingSettingsKeepAnyMockFeatureEnabled
 }
 
 class GpStickViewModel(
@@ -149,11 +289,19 @@ class GpStickViewModel(
     private val viewModelScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val initialSimulationState = simulationStateStore.load()
     private val initialPresets = presetRepository.getPresets()
+    private val initialPresetModels = initialPresets.map(LocationPreset::toUiModel)
+    private val initialMoveForm = resolveMoveForm(
+        previous = MoveFormUiState(),
+        presets = initialPresetModels,
+        activePresetId = initialSimulationState.activePresetId,
+    )
     private val _events = MutableSharedFlow<GpStickUiEvent>(
+        replay = 1,
         extraBufferCapacity = 16,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     val events: SharedFlow<GpStickUiEvent> = _events.asSharedFlow()
+    private var arrivalResetJob: Job? = null
     private var lastHandledFailureEventId = if (initialSimulationState.failureMessage == null) {
         initialSimulationState.failureEventId
     } else {
@@ -162,7 +310,7 @@ class GpStickViewModel(
 
     var uiState by mutableStateOf(
         GpStickUiState(
-            presets = initialPresets.map(LocationPreset::toUiModel),
+            presets = initialPresetModels,
             selectedPresetId = initialSimulationState.activePresetId ?: initialPresets.firstOrNull()?.id,
             activePresetId = initialSimulationState.activePresetId,
             simulationState = initialSimulationState.toUiState(),
@@ -177,6 +325,17 @@ class GpStickViewModel(
             activeCellMockEnabled = initialSimulationState.activeCellMockEnabled,
             activeMovementSimulationEnabled = initialSimulationState.activeMovementSimulationEnabled,
             canStartSimulation = initialSimulationState.hasAnyMockFeatureEnabled,
+            moveForm = initialMoveForm,
+            movementPhase = initialSimulationState.movementSession.phase,
+            movementOriginPresetId = initialSimulationState.movementSession.originPresetId,
+            movementDestinationPresetId = initialSimulationState.movementSession.destinationPresetId,
+            movementTransportMode = initialSimulationState.movementSession.transportMode,
+            movementSpeedMetersPerSecond = initialSimulationState.movementSession.speedMetersPerSecond,
+            movementProgress = initialSimulationState.movementSession.progress,
+            movementEtaEpochMillis = initialSimulationState.movementSession.etaEpochMillis,
+            movementCurrentLatitude = initialSimulationState.movementSession.currentLatitude,
+            movementCurrentLongitude = initialSimulationState.movementSession.currentLongitude,
+            movementCurrentAltitude = initialSimulationState.movementSession.currentAltitude,
         )
     )
         private set
@@ -187,6 +346,7 @@ class GpStickViewModel(
     init {
         simulationStateStore.state
             .onEach { state ->
+                handleMovementPhase(state)
                 refreshPresetList(
                     selectedPresetId = state.activePresetId ?: uiState.selectedPresetId,
                     activePresetId = state.activePresetId,
@@ -278,6 +438,44 @@ class GpStickViewModel(
 
     fun setMovementSimulationEnabled(enabled: Boolean) {
         simulationStateStore.setMovementSimulationEnabled(enabled)
+    }
+
+    fun selectMoveDestination(presetId: String) {
+        if (uiState.presets.none { it.id == presetId }) {
+            return
+        }
+
+        uiState = uiState.copy(
+            moveForm = uiState.moveForm.copy(destinationPresetId = presetId),
+        )
+    }
+
+    fun selectMoveTransportMode(mode: MoveTransportOption) {
+        val currentSpeed = uiState.moveForm.speedMetersPerSecond
+        val speedWithinRange = currentSpeed >= mode.minSpeedMetersPerSecond &&
+            currentSpeed <= mode.maxSpeedMetersPerSecond
+        uiState = uiState.copy(
+            moveForm = uiState.moveForm.copy(
+                transportMode = mode,
+                speedMetersPerSecond = if (speedWithinRange) {
+                    currentSpeed
+                } else {
+                    mode.defaultSpeedMetersPerSecond
+                },
+            ),
+        )
+    }
+
+    fun updateMoveSpeed(value: Float) {
+        val selectedMode = uiState.moveForm.transportMode
+        uiState = uiState.copy(
+            moveForm = uiState.moveForm.copy(
+                speedMetersPerSecond = value.coerceIn(
+                    minimumValue = selectedMode.minSpeedMetersPerSecond,
+                    maximumValue = selectedMode.maxSpeedMetersPerSecond,
+                ),
+            ),
+        )
     }
 
     fun closePresetEditor() {
@@ -414,6 +612,60 @@ class GpStickViewModel(
         }
     }
 
+    fun startMovement() {
+        val blockedReason = uiState.movementStartBlockedReason
+        if (blockedReason != null) {
+            emitUiEvent(GpStickUiEvent.ShowMessage(blockedReason))
+            return
+        }
+
+        val destinationPresetId = uiState.moveForm.destinationPresetId ?: return
+        val moveForm = uiState.moveForm
+        if (uiState.simulationState == SimulationState.Running) {
+            val originPresetId = uiState.activePresetId ?: return
+            if (!serviceController.startMovement(
+                    originPresetId = originPresetId,
+                    destinationPresetId = destinationPresetId,
+                    transportMode = moveForm.transportMode.runtimeMode,
+                    speedMetersPerSecond = moveForm.speedMetersPerSecond.toDouble(),
+                )
+            ) {
+                emitUiEvent(GpStickUiEvent.ShowMessage("Unable to start route movement for the current live session."))
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            val capturedState = withContext(Dispatchers.IO) {
+                deviceStateCaptureRepository.captureCurrentState()
+            }
+
+            if (capturedState == null) {
+                emitUiEvent(
+                    GpStickUiEvent.ShowMessage(
+                        "Unable to capture the current device location. Check location permission and current position.",
+                    ),
+                )
+                return@launch
+            }
+
+            val runtimeOriginPreset = capturedState.toRuntimeOriginPreset()
+            if (!serviceController.startMovementFromCurrentLocation(
+                    originPreset = runtimeOriginPreset,
+                    destinationPresetId = destinationPresetId,
+                    transportMode = moveForm.transportMode.runtimeMode,
+                    speedMetersPerSecond = moveForm.speedMetersPerSecond.toDouble(),
+                )
+            ) {
+                emitUiEvent(
+                    GpStickUiEvent.ShowMessage(
+                        "Unable to start route movement from the current device location.",
+                    ),
+                )
+            }
+        }
+    }
+
     fun updateRuntimePermissionState(
         locationPermissionGranted: Boolean,
         notificationPermissionGranted: Boolean,
@@ -452,9 +704,58 @@ class GpStickViewModel(
         serviceController.stop()
     }
 
+    fun cancelMovement() {
+        if (!uiState.canCancelMovement) {
+            return
+        }
+
+        if (!serviceController.cancelMovement()) {
+            emitUiEvent(GpStickUiEvent.ShowMessage("Unable to cancel the active route movement."))
+        }
+    }
+
+    fun applyPendingOptions() {
+        if (!uiState.canApplyPendingSettings) {
+            return
+        }
+
+        if (!serviceController.applyPendingOptions()) {
+            emitUiEvent(GpStickUiEvent.ShowMessage("Unable to send pending options to the active simulation."))
+        }
+    }
+
     override fun onCleared() {
+        arrivalResetJob?.cancel()
         viewModelScope.cancel()
         super.onCleared()
+    }
+
+    private fun handleMovementPhase(state: SimulationControlState) {
+        val phase = state.movementSession.phase
+        if (phase == MovementPhase.Arrived && uiState.movementPhase != MovementPhase.Arrived) {
+            scheduleMoveArrivalReset()
+        } else if (phase != MovementPhase.Arrived) {
+            arrivalResetJob?.cancel()
+            arrivalResetJob = null
+        }
+    }
+
+    private fun scheduleMoveArrivalReset() {
+        arrivalResetJob?.cancel()
+        arrivalResetJob = viewModelScope.launch {
+            delay(MOVE_ARRIVAL_RESET_DELAY_MILLIS)
+            val latestState = simulationStateStore.state.value
+            if (latestState.movementSession.phase == MovementPhase.Arrived) {
+                uiState = uiState.copy(
+                    moveForm = resolveMoveForm(
+                        previous = uiState.moveForm.copy(destinationPresetId = null),
+                        presets = uiState.presets,
+                        activePresetId = latestState.activePresetId,
+                    ),
+                )
+                simulationStateStore.clearMovementSession()
+            }
+        }
     }
 
     private fun updateEditorState(transform: PresetEditorUiState.() -> PresetEditorUiState) {
@@ -467,6 +768,11 @@ class GpStickViewModel(
         simulationState: SimulationControlState = simulationStateStore.state.value,
     ) {
         val presets = presetRepository.getPresets().map(LocationPreset::toUiModel)
+        val moveForm = resolveMoveForm(
+            previous = uiState.moveForm,
+            presets = presets,
+            activePresetId = activePresetId,
+        )
         val presetIds = presets.map(PresetUiModel::id).toSet()
         val resolvedSelectedPresetId = when {
             selectedPresetId != null && selectedPresetId in presetIds -> selectedPresetId
@@ -498,11 +804,27 @@ class GpStickViewModel(
                 notificationPermissionRequired = uiState.notificationPermissionRequired,
                 simulationState = simulationState,
             ),
+            moveForm = moveForm,
+            movementPhase = simulationState.movementSession.phase,
+            movementOriginPresetId = simulationState.movementSession.originPresetId,
+            movementDestinationPresetId = simulationState.movementSession.destinationPresetId,
+            movementTransportMode = simulationState.movementSession.transportMode,
+            movementSpeedMetersPerSecond = simulationState.movementSession.speedMetersPerSecond,
+            movementProgress = simulationState.movementSession.progress,
+            movementEtaEpochMillis = simulationState.movementSession.etaEpochMillis,
+            movementCurrentLatitude = simulationState.movementSession.currentLatitude,
+            movementCurrentLongitude = simulationState.movementSession.currentLongitude,
+            movementCurrentAltitude = simulationState.movementSession.currentAltitude,
         )
     }
 
     private fun emitUiEvent(event: GpStickUiEvent) {
         _events.tryEmit(event)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun clearReplayedUiEvents() {
+        _events.resetReplayCache()
     }
 
     private fun maybeEmitFailureMessage(state: SimulationControlState) {
@@ -524,6 +846,32 @@ class GpStickViewModel(
         val permissionsReady = locationPermissionGranted &&
             (!notificationPermissionRequired || notificationPermissionGranted)
         return permissionsReady && simulationState.hasAnyMockFeatureEnabled
+    }
+
+    private fun resolveMoveForm(
+        previous: MoveFormUiState,
+        presets: List<PresetUiModel>,
+        activePresetId: String?,
+    ): MoveFormUiState {
+        val presetIds = presets.map(PresetUiModel::id).toSet()
+        val resolvedDestinationId = when {
+            previous.destinationPresetId != null && previous.destinationPresetId in presetIds -> {
+                previous.destinationPresetId
+            }
+
+            else -> {
+                presets.firstOrNull { it.id != activePresetId }?.id ?: presets.firstOrNull()?.id
+            }
+        }
+        val selectedMode = previous.transportMode
+        val resolvedSpeed = previous.speedMetersPerSecond
+            .takeIf { it >= selectedMode.minSpeedMetersPerSecond && it <= selectedMode.maxSpeedMetersPerSecond }
+            ?: selectedMode.defaultSpeedMetersPerSecond
+
+        return previous.copy(
+            destinationPresetId = resolvedDestinationId,
+            speedMetersPerSecond = resolvedSpeed,
+        )
     }
 
     private fun upsertPreset(preset: LocationPreset) {
@@ -686,6 +1034,20 @@ private fun buildPresetSummary(
     wifiCount: Int,
     cellCount: Int,
 ): String = "Lat ${latitude.formatCoordinate()}, Lon ${longitude.formatCoordinate()} | $wifiCount Wi-Fi | $cellCount cells"
+
+private fun CapturedDeviceState.toRuntimeOriginPreset(): LocationPreset = LocationPreset(
+    id = "${ServiceCommandFactory.RUNTIME_ORIGIN_PRESET_ID_PREFIX}${UUID.randomUUID()}",
+    name = "Current device location",
+    summary = buildPresetSummary(
+        latitude = gps.latitude,
+        longitude = gps.longitude,
+        wifiCount = wifiNetworks.size,
+        cellCount = cellTowers.size,
+    ),
+    gps = gps,
+    wifiNetworks = wifiNetworks,
+    cellTowers = cellTowers,
+)
 
 private fun Double.toEditorNumber(): String = toString()
 

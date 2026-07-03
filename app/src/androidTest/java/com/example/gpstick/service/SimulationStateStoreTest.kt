@@ -56,6 +56,26 @@ class SimulationStateStoreTest {
         assertEquals(10_000L, snapshot.sessionHeartbeatAtMillis)
     }
 
+    @Test
+    fun promotePendingSettingsToActive_copiesPendingSettingsIntoLiveState() {
+        val store = prepareStore()
+        store.setSimulationActive(
+            activePresetId = "preset-3",
+            sessionId = "session-3",
+        )
+        store.setGpsMockEnabled(false)
+        store.setMovementSimulationEnabled(true)
+
+        store.promotePendingSettingsToActive()
+
+        val snapshot = store.load()
+        assertTrue(snapshot.isRunning)
+        assertFalse(snapshot.activeGpsMockEnabled)
+        assertTrue(snapshot.activeWifiMockEnabled)
+        assertTrue(snapshot.activeCellMockEnabled)
+        assertTrue(snapshot.activeMovementSimulationEnabled)
+    }
+
     private fun prepareStore(): SimulationStateStore {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val preferences = context.getSharedPreferences(

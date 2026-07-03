@@ -1,2 +1,3 @@
+com.example.gpstick.core.gps.LocationMockHook
 com.example.gpstick.core.wifi.WifiScanHook
 com.example.gpstick.core.cell.CellInfoHook

@@ -23,7 +23,7 @@ internal fun sanitizeGpStickRouteName(raw: String?): String =
     GpStickRoute.entries.firstOrNull { it.name == raw }?.name ?: GpStickRoute.Dashboard.name
 
 internal fun sanitizeDashboardTabName(raw: String?): String =
-    DashboardTab.entries.firstOrNull { it.name == raw }?.name ?: DashboardTab.Presets.name
+    DashboardTab.entries.firstOrNull { it.name == raw }?.name ?: DashboardTab.Status.name
 
 @Composable
 fun GpStickApp(
@@ -31,7 +31,7 @@ fun GpStickApp(
     onRequestPermissions: () -> Unit = {},
 ) {
     var route by rememberSaveable { mutableStateOf(GpStickRoute.Dashboard.name) }
-    var dashboardTab by rememberSaveable { mutableStateOf(DashboardTab.Presets.name) }
+    var dashboardTab by rememberSaveable { mutableStateOf(DashboardTab.Status.name) }
     val context = LocalContext.current
     val resolvedRoute = sanitizeGpStickRouteName(route)
     val resolvedDashboardTab = sanitizeDashboardTabName(dashboardTab)
@@ -39,7 +39,10 @@ fun GpStickApp(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is GpStickUiEvent.ShowMessage -> Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                is GpStickUiEvent.ShowMessage -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                    viewModel.clearReplayedUiEvents()
+                }
             }
         }
     }
@@ -71,6 +74,12 @@ fun GpStickApp(
                         onWifiMockEnabledChanged = viewModel::setWifiMockEnabled,
                         onCellMockEnabledChanged = viewModel::setCellMockEnabled,
                         onMovementSimulationEnabledChanged = viewModel::setMovementSimulationEnabled,
+                        onMoveDestinationSelected = viewModel::selectMoveDestination,
+                        onMoveTransportModeSelected = viewModel::selectMoveTransportMode,
+                        onMoveSpeedChanged = viewModel::updateMoveSpeed,
+                        onStartMovement = viewModel::startMovement,
+                        onCancelMovement = viewModel::cancelMovement,
+                        onApplyNow = viewModel::applyPendingOptions,
                         onCreatePreset = {
                             viewModel.openPresetEditor(presetId = null)
                             route = GpStickRoute.PresetEditor.name

@@ -23,7 +23,7 @@ class GpStickAppRestoreSafetyTest {
 
     @Test
     fun sanitizeDashboardTabName_fallsBackForUnknownTab() {
-        assertEquals(DashboardTab.Presets.name, sanitizeDashboardTabName("LegacyTab"))
-        assertEquals(DashboardTab.Presets.name, sanitizeDashboardTabName(null))
+        assertEquals(DashboardTab.Status.name, sanitizeDashboardTabName("LegacyTab"))
+        assertEquals(DashboardTab.Status.name, sanitizeDashboardTabName(null))
     }
 }

@@ -15,6 +15,38 @@ data class SimulationFeatureSettings(
         get() = featuresEnabled && (isGpsMockEnabled || isWifiMockEnabled || isCellMockEnabled)
 }
 
+enum class MovementPhase {
+    None,
+    Routing,
+    Moving,
+    Arrived,
+    Canceled,
+}
+
+enum class MovementTransportMode {
+    Drive,
+    Cycle,
+    Walk,
+    Transit,
+}
+
+@Immutable
+data class MovementSessionState(
+    val phase: MovementPhase = MovementPhase.None,
+    val originPresetId: String? = null,
+    val destinationPresetId: String? = null,
+    val transportMode: MovementTransportMode? = null,
+    val speedMetersPerSecond: Double = 0.0,
+    val progress: Double = 0.0,
+    val etaEpochMillis: Long = 0L,
+    val currentLatitude: Double? = null,
+    val currentLongitude: Double? = null,
+    val currentAltitude: Double? = null,
+) {
+    val isInFlight: Boolean
+        get() = phase == MovementPhase.Routing || phase == MovementPhase.Moving
+}
+
 @Immutable
 data class SimulationControlState(
     val isRunning: Boolean = false,
@@ -25,6 +57,7 @@ data class SimulationControlState(
     val sessionHeartbeatAtMillis: Long = 0L,
     val failureMessage: String? = null,
     val failureEventId: Long = 0L,
+    val movementSession: MovementSessionState = MovementSessionState(),
 ) {
     val hasAnyMockFeatureEnabled: Boolean
         get() = pendingSettings.hasAnyMockFeatureEnabled

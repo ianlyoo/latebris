@@ -23,6 +23,10 @@ class SimulationCoordinator(
 
     fun start(presetId: String): LocationPreset? {
         val preset = presetRepository.getPreset(presetId) ?: return null
+        return applyPreset(preset)
+    }
+
+    fun applyPreset(preset: LocationPreset): LocationPreset {
         gpsHookManager.applyPreset(preset)
         wifiHookManager.applyPreset(preset)
         cellHookManager.applyPreset(preset)

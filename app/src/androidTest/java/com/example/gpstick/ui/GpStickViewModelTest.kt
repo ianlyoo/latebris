@@ -3,17 +3,19 @@ package com.example.gpstick.ui
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.example.gpstick.data.preset.DeviceStateCaptureRepository
+import com.example.gpstick.data.preset.CapturedDeviceState
 import com.example.gpstick.data.preset.DeviceStateCaptureDataSource
 import com.example.gpstick.data.preset.GpsPreset
 import com.example.gpstick.data.preset.InMemoryPresetRepository
 import com.example.gpstick.data.preset.LocationPreset
 import com.example.gpstick.service.ForegroundServiceController
+import com.example.gpstick.service.ServiceCommandFactory
 import com.example.gpstick.service.SimulationStateStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -145,13 +147,13 @@ class GpStickViewModelTest {
 
         viewModel.openPresetEditor(presetId = null)
         viewModel.updateEditorName("Seoul")
-        viewModel.updateEditorLatitude("ÔºìÔºó,ÔºïÔºñÔºñÔºï")
-        viewModel.updateEditorLongitude("‚àíÔºëÔºíÔºñ,ÔºôÔºóÔºòÔºê")
-        viewModel.updateEditorAltitude("ÔºëÔºê,Ôºï")
+        viewModel.updateEditorLatitude("£≥£∑,£µ£∂£∂£µ")
+        viewModel.updateEditorLongitude("?£±£≤£∂,£π£∑£∏£∞")
+        viewModel.updateEditorAltitude("£±£∞,£µ")
 
-        assertEquals("ÔºìÔºó,ÔºïÔºñÔºñÔºï", viewModel.presetEditorState.latitude)
-        assertEquals("‚àíÔºëÔºíÔºñ,ÔºôÔºóÔºòÔºê", viewModel.presetEditorState.longitude)
-        assertEquals("ÔºëÔºê,Ôºï", viewModel.presetEditorState.altitude)
+        assertEquals("£≥£∑,£µ£∂£∂£µ", viewModel.presetEditorState.latitude)
+        assertEquals("?£±£≤£∂,£π£∑£∏£∞", viewModel.presetEditorState.longitude)
+        assertEquals("£±£∞,£µ", viewModel.presetEditorState.altitude)
         assertTrue(viewModel.presetEditorState.isSaveEnabled)
         assertTrue(viewModel.savePresetEdits())
 
@@ -159,6 +161,122 @@ class GpStickViewModelTest {
         assertEquals(37.5665, savedPreset.gps.latitude, 0.0)
         assertEquals(-126.9780, savedPreset.gps.longitude, 0.0)
         assertEquals(10.5, savedPreset.gps.altitude, 0.0)
+    }
+
+    @Test
+    fun applyPendingOptions_emitsMessage_whenControllerReturnsFailure() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val preset = LocationPreset(
+            id = "preset-apply",
+            name = "Demo",
+            summary = "Demo",
+            gps = GpsPreset(1.0, 2.0, 3.0, 4f),
+        )
+
+        simulationStateStore.setSimulationActive(
+            activePresetId = preset.id,
+            sessionId = "session-apply-test",
+        )
+        simulationStateStore.setMovementSimulationEnabled(true)
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(listOf(preset)),
+            serviceController = FakeServiceController(startResult = true, applyPendingOptionsResult = false),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.applyPendingOptions()
+
+        assertEquals(
+            "Unable to send pending options to the active simulation.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun startMovement_emitsMessage_whenCurrentLocationCaptureFails() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        val presets = listOf(
+            LocationPreset(
+                id = "origin",
+                name = "Origin",
+                summary = "Origin",
+                gps = GpsPreset(1.0, 2.0, 3.0, 4f),
+            ),
+            LocationPreset(
+                id = "destination",
+                name = "Destination",
+                summary = "Destination",
+                gps = GpsPreset(5.0, 6.0, 7.0, 4f),
+            ),
+        )
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(presets),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        viewModel.selectMoveDestination("destination")
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.startMovement()
+
+        assertEquals(
+            "Unable to capture the current device location. Check location permission and current position.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun startMovement_autoStartsFromCurrentLocation_whenSimulationIsStopped() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        val destination = LocationPreset(
+            id = "destination",
+            name = "Destination",
+            summary = "Destination",
+            gps = GpsPreset(5.0, 6.0, 7.0, 4f),
+        )
+        val fakeController = FakeServiceController(startResult = true)
+        val capturedState = CapturedDeviceState(
+            gps = GpsPreset(37.5, 127.0, 18.0, 8f),
+            wifiNetworks = emptyList(),
+            cellTowers = emptyList(),
+        )
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(listOf(destination)),
+            serviceController = fakeController,
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(capturedState = capturedState),
+        )
+
+        viewModel.selectMoveDestination(destination.id)
+        viewModel.startMovement()
+
+        withTimeout(1000) {
+            while (!fakeController.startMovementFromCurrentLocationCalled) {
+                delay(10)
+            }
+        }
+
+        assertEquals(destination.id, fakeController.lastDestinationPresetId)
+        assertEquals(37.5, fakeController.lastOriginPreset!!.gps.latitude, 0.0)
+        assertTrue(
+            fakeController.lastOriginPreset?.id?.startsWith(ServiceCommandFactory.RUNTIME_ORIGIN_PRESET_ID_PREFIX) == true,
+        )
     }
 
     private suspend fun captureFirstUiEventMessage(viewModel: GpStickViewModel): String {
@@ -298,12 +416,45 @@ class GpStickViewModelTest {
         return store
     }
 
-    private class FakeServiceController(private val startResult: Boolean) : ForegroundServiceController {
+    private class FakeServiceController(
+        private val startResult: Boolean,
+        private val applyPendingOptionsResult: Boolean = true,
+        private val startMovementResult: Boolean = true,
+        private val startMovementFromCurrentLocationResult: Boolean = true,
+        private val cancelMovementResult: Boolean = true,
+    ) : ForegroundServiceController {
+        var startMovementFromCurrentLocationCalled: Boolean = false
+        var lastOriginPreset: LocationPreset? = null
+        var lastDestinationPresetId: String? = null
+
         override fun start(preset: LocationPreset): Boolean = startResult
 
         override fun stop() {
             // no-op in tests
         }
+
+        override fun applyPendingOptions(): Boolean = applyPendingOptionsResult
+
+        override fun startMovement(
+            originPresetId: String,
+            destinationPresetId: String,
+            transportMode: com.example.gpstick.service.MovementTransportMode,
+            speedMetersPerSecond: Double,
+        ): Boolean = startMovementResult
+
+        override fun startMovementFromCurrentLocation(
+            originPreset: LocationPreset,
+            destinationPresetId: String,
+            transportMode: com.example.gpstick.service.MovementTransportMode,
+            speedMetersPerSecond: Double,
+        ): Boolean {
+            startMovementFromCurrentLocationCalled = true
+            lastOriginPreset = originPreset
+            lastDestinationPresetId = destinationPresetId
+            return startMovementFromCurrentLocationResult
+        }
+
+        override fun cancelMovement(): Boolean = cancelMovementResult
     }
 
     private class FakeCaptureRepository(

@@ -22,10 +22,6 @@ class WifiScanHook : IXposedHookLoadPackage {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         val preset = resolveActivePreset() ?: return
                         val wifiNetworks = preset.wifiNetworks
-                        if (wifiNetworks.isEmpty()) {
-                            return
-                        }
-
                         param.result = ArrayList(wifiNetworks.map(::toScanResult))
                     }
                 },
