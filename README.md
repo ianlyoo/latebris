@@ -1,6 +1,6 @@
 # Latebris
 
-> Android GPS·Wi-Fi·Cell 스푸핑 툴 — 위치 신호를 프리셋 단위로 갈아끼운다
+Android location-signal simulation framework for testing applications that consume GPS, Wi-Fi, and cellular location APIs — security research / QA
 
 [English](README.en.md) · [MIT License](LICENSE) · Android 12+ (minSdk 31) · Kotlin
 
@@ -50,8 +50,8 @@ Wi-Fi/Cell까지 쓰려면 아래 요구 조건을 채워야 한다.
 | 기능 | 설명 |
 |------|------|
 | GPS 시뮬레이션 | Android mock location 경로로 프리셋 좌표를 주입 |
-| Wi-Fi 스푸핑 | `WifiManager.getScanResults`를 후킹해 대상 앱 프로세스 안에서 스캔 결과를 치환 |
-| Cell 스푸핑 | `TelephonyManager`의 `getAllCellInfo`·`getCellLocation`을 후킹해 LTE 셀 정보를 치환 |
+| Wi-Fi 시뮬레이션 | `WifiManager.getScanResults`를 후킹해 대상 앱 프로세스 안에서 스캔 결과를 시뮬레이션 |
+| Cell 시뮬레이션 | `TelephonyManager`의 `getAllCellInfo`·`getCellLocation`을 후킹해 LTE 셀 정보를 시뮬레이션 |
 | 프리셋 관리 | GPS·Wi-Fi·Cell 값을 한 프로필로 묶어 JSON으로 저장·편집 |
 | 기기 상태 캡처 | 현재 기기의 실제 위치·Wi-Fi·Cell 값을 떠서 프리셋 초안으로 사용 |
 | Cell 자동 채우기 | OpenCellID로 프리셋 좌표 주변 실제 기지국을 조회해 채움 |

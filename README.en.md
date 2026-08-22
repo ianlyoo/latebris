@@ -1,6 +1,6 @@
 # Latebris
 
-> Android GPS/Wi-Fi/cell spoofing tool — swap location signals as a single preset
+Android location-signal simulation framework for testing applications that consume GPS, Wi-Fi, and cellular location APIs — security research / QA
 
 [한국어](README.md) · [MIT License](LICENSE) · Android 12+ (minSdk 31) · Kotlin
 
@@ -50,8 +50,8 @@ then follow [How_to_use.md](How_to_use.md) for usage steps.
 | Feature | Description |
 |---------|-------------|
 | GPS simulation | Injects preset coordinates through Android's mock-location path |
-| Wi-Fi spoofing | Hooks `WifiManager.getScanResults` to replace scan results inside the target process |
-| Cell spoofing | Hooks `TelephonyManager.getAllCellInfo` / `getCellLocation` to replace LTE cell info |
+| Wi-Fi simulation | Hooks `WifiManager.getScanResults` to simulate scan results inside the target process |
+| Cell simulation | Hooks `TelephonyManager.getAllCellInfo` / `getCellLocation` to simulate LTE cell info |
 | Preset management | Bundles GPS/Wi-Fi/cell values into one profile, stored and edited as JSON |
 | Device-state capture | Reads the device's real location/Wi-Fi/cell values into a preset draft |
 | Cell auto-fill | Looks up real towers around the preset coordinate via OpenCellID |
