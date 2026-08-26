@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ianlyoo.github.io/latebris/sitemap.xml

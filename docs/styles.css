@@ -1,0 +1,217 @@
+/* GeminiContextPack — static accessible styles, no JS, WCAG AA contrast, responsive */
+:root {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #334155;
+  --link: #0b57d0;
+  --link-visited: #5b21b6;
+  --accent: #0f172a;
+  --border: #cbd5e1;
+  --code-bg: #f1f5f9;
+  --focus: #0b57d0;
+  --header-bg: #f8fafc;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-size: 16px;
+  line-height: 1.6;
+  scroll-behavior: auto;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--focus);
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Header */
+header[role="banner"] {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem 0 1rem;
+}
+header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+.tagline {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 1rem;
+  max-width: 70ch;
+}
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+nav li { margin: 0; }
+nav a {
+  display: inline-block;
+  padding: 0.2rem 0;
+}
+
+/* Main */
+main {
+  padding: 1.5rem 0 2rem;
+}
+section {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+section:last-child { border-bottom: none; }
+h2 {
+  font-size: 1.35rem;
+  line-height: 1.3;
+  margin: 0 0 0.75rem;
+  color: var(--accent);
+}
+p, li { max-width: 70ch; }
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a:visited { color: var(--link-visited); }
+a:hover { text-decoration-thickness: 2px; }
+a:focus, button:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Table — benchmark */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.92rem;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+thead th {
+  text-align: left;
+  background: #f1f5f9;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 0.6rem 0.6rem;
+  font-weight: 600;
+}
+tbody td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.6rem;
+}
+tbody tr:nth-child(even) { background: #f8fafc; }
+
+/* Limitations note — adjacent to benchmark, high contrast */
+.limitations {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #d97706;
+  padding: 0.9rem 1rem;
+  margin-top: 1rem;
+  color: #1e293b;
+}
+.limitations p {
+  margin: 0 0 0.5rem;
+  max-width: none;
+}
+.limitations p:last-child { margin-bottom: 0; }
+.limitations strong { color: #0f172a; }
+
+/* Code */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Footer */
+footer[role="contentinfo"] {
+  border-top: 1px solid var(--border);
+  background: var(--header-bg);
+  padding: 1.25rem 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+footer a { color: var(--link); }
+
+/* Responsive */
+@media (max-width: 640px) {
+  html { font-size: 15px; }
+  header h1 { font-size: 1.6rem; }
+  .container { padding: 0 1rem; }
+  table { font-size: 0.85rem; }
+  pre { font-size: 0.8rem; }
+}
+
+@media (min-width: 1024px) {
+  .container { max-width: 1024px; }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root { --link: #0033cc; --focus: #000000; }
+  a { text-decoration-thickness: 2px; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Print */
+@media print {
+  header, footer { background: none; }
+  a { color: #000; }
+  .skip-link { display: none; }
+}
