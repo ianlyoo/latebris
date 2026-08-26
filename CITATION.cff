@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "latebris"
+version: 0.1.0
+authors:
+  - family-names: "Yoo"
+    given-names: "Ian"
+    alias: "ianlyoo"
+type: software
+license: MIT
+repository-code: "https://github.com/ianlyoo/latebris"
+url: "https://ianlyoo.github.io/latebris/"
+homepage: "https://ianlyoo.github.io/latebris/"
+description: "Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing."
+keywords:
+  - android
+  - android-testing
+  - developer-tools
+  - geolocation
+  - gps-simulation
+  - kotlin
+  - location-spoofing
+  - location-testing
+  - mobile
+  - research-tool
+  - security-research
+  - wifi-simulation

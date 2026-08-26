@@ -1,0 +1,38 @@
+{
+  "name": "latebris",
+  "version": "0.1.0",
+  "description": "Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.",
+  "keywords": [
+    "android",
+    "android-testing",
+    "developer-tools",
+    "geolocation",
+    "gps-simulation",
+    "kotlin",
+    "location-spoofing",
+    "location-testing",
+    "mobile",
+    "research-tool",
+    "security-research",
+    "wifi-simulation"
+  ],
+  "homepage": "https://ianlyoo.github.io/latebris/",
+  "bugs": {
+    "url": "https://github.com/ianlyoo/latebris/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ianlyoo/latebris.git"
+  },
+  "license": "MIT",
+  "author": "ianlyoo",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
