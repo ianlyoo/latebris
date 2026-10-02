@@ -1,9 +1,9 @@
 package com.example.gpstick.service.routing
 
 import com.example.gpstick.BuildConfig
+import com.example.gpstick.core.network.JsonHttpClient
 import com.example.gpstick.service.MovementTransportMode
 import com.google.gson.Gson
-import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.ceil
 
@@ -19,9 +19,27 @@ data class RouteResult(
     val durationSeconds: Double,
 )
 
-class OpenRouteServiceClient(
-    private val gson: Gson = Gson(),
+class OpenRouteServiceClient internal constructor(
+    private val http: JsonHttpClient,
+    private val apiKey: () -> String,
+    private val distanceBetween: (RoutePoint, RoutePoint) -> Double,
 ) {
+    constructor() : this(Gson())
+
+    constructor(gson: Gson = Gson()) : this(
+        http = JsonHttpClient(gson),
+        apiKey = { BuildConfig.OPEN_ROUTE_SERVICE_API_KEY },
+        distanceBetween = { origin, destination ->
+            val result = FloatArray(1)
+            android.location.Location.distanceBetween(
+                origin.latitude, origin.longitude,
+                destination.latitude, destination.longitude,
+                result,
+            )
+            result[0].toDouble()
+        },
+    )
+
     fun fetchRoute(
         originLatitude: Double,
         originLongitude: Double,
@@ -39,7 +57,7 @@ class OpenRouteServiceClient(
             destinationLongitude = destinationLongitude,
             destinationAltitude = destinationAltitude,
         )
-        val apiKey = BuildConfig.OPEN_ROUTE_SERVICE_API_KEY.takeIf { it.isNotBlank() } ?: return fallbackRoute
+        val key = apiKey().takeIf { it.isNotBlank() } ?: return fallbackRoute
         val profile = mode.toOrsProfile()
         val endpoint = "https://api.openrouteservice.org/v2/directions/$profile/geojson"
 
@@ -51,60 +69,36 @@ class OpenRouteServiceClient(
             elevation = true,
         )
 
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 10_000
-            readTimeout = 10_000
-            setRequestProperty("Authorization", apiKey)
-            setRequestProperty("Content-Type", "application/json")
-            doOutput = true
-        }
-
         return runCatching {
-            connection.outputStream.bufferedWriter().use { writer ->
-                writer.write(gson.toJson(requestBody))
-            }
+            http.post(
+                URL(endpoint),
+                requestBody,
+                OrsRouteResponse::class.java,
+                headers = mapOf("Authorization" to key),
+            )?.toRouteResult()
+        }.getOrNull() ?: fallbackRoute
+    }
 
-            val responseCode = connection.responseCode
-            if (responseCode !in 200..299) {
-                connection.errorStream?.close()
-                return null
-            }
-
-            val response = connection.inputStream.bufferedReader().use { reader ->
-                gson.fromJson(reader, OrsRouteResponse::class.java)
-            }
-
-            val feature = response.features.orEmpty().firstOrNull() ?: return null
-            val coordinates = feature.geometry?.coordinates.orEmpty()
-            if (coordinates.size < 2) {
-                return null
-            }
-
-            val geometry = coordinates.mapNotNull { coordinate ->
-                val longitude = coordinate.getOrNull(0) ?: return@mapNotNull null
-                val latitude = coordinate.getOrNull(1) ?: return@mapNotNull null
-                val altitude = coordinate.getOrNull(2) ?: 0.0
-                RoutePoint(
-                    latitude = latitude,
-                    longitude = longitude,
-                    altitude = altitude,
-                )
-            }
-
-            if (geometry.size < 2) {
-                return null
-            }
-
-            val summary = feature.properties?.summary
-            RouteResult(
-                geometry = geometry,
-                distanceMeters = summary?.distance ?: 0.0,
-                durationSeconds = summary?.duration ?: 0.0,
+    private fun OrsRouteResponse.toRouteResult(): RouteResult? {
+        val feature = features.orEmpty().firstOrNull() ?: return null
+        val geometry = feature.geometry?.coordinates.orEmpty().mapNotNull { coordinate ->
+            val longitude = coordinate.getOrNull(0) ?: return@mapNotNull null
+            val latitude = coordinate.getOrNull(1) ?: return@mapNotNull null
+            RoutePoint(
+                latitude = latitude,
+                longitude = longitude,
+                altitude = coordinate.getOrNull(2) ?: 0.0,
             )
-        }.getOrNull().also {
-            connection.disconnect()
-        } ?: fallbackRoute
+        }
+        if (geometry.size < 2) {
+            return null
+        }
+        val summary = feature.properties?.summary
+        return RouteResult(
+            geometry = geometry,
+            distanceMeters = summary?.distance ?: 0.0,
+            durationSeconds = summary?.duration ?: 0.0,
+        )
     }
 
     private fun buildFallbackRoute(
@@ -115,17 +109,10 @@ class OpenRouteServiceClient(
         destinationLongitude: Double,
         destinationAltitude: Double,
     ): RouteResult? {
-        val distanceMeters = android.location.Location("").run {
-            val result = FloatArray(1)
-            android.location.Location.distanceBetween(
-                originLatitude,
-                originLongitude,
-                destinationLatitude,
-                destinationLongitude,
-                result,
-            )
-            result[0].toDouble()
-        }
+        val distanceMeters = distanceBetween(
+            RoutePoint(originLatitude, originLongitude, originAltitude),
+            RoutePoint(destinationLatitude, destinationLongitude, destinationAltitude),
+        )
 
         if (distanceMeters <= 0.0) {
             return null
