@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "Latebris"
 include(":app")
 include(":xposed-stubs")
+include(":probe")

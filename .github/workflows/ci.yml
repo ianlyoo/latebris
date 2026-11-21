@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Unit tests and debug build
+    name: Unit tests, debug builds and lint
     runs-on: ubuntu-latest
 
     steps:
@@ -26,5 +26,5 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Test and build
-        run: ./gradlew test assembleDebug
+      - name: Test, build and lint
+        run: ./gradlew test assembleDebug lint

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="probe_needs_permission">Grant location permission to run the probe.</string>
+    <string name="probe_running">%1$s\nprobing at %2$s …</string>
+    <string name="probe_title">%1$s\nrun %2$s</string>
+</resources>
