@@ -3,8 +3,7 @@ message: "If you use this software, please cite it as below."
 title: "latebris"
 version: 0.2.0
 authors:
-  - family-names: "Yoo"
-    given-names: "Ian"
+  - name: "AhnRyu"
     alias: "ianlyoo"
 type: software
 license: MIT
