@@ -1,15 +1,20 @@
-/* GeminiContextPack — static accessible styles, no JS, WCAG AA contrast, responsive */
+/* Static, accessible styles in the app's wayfinding palette: an ink sign for the header, yellow for the name. */
+@font-face { font-family: "Atkinson Hyperlegible"; src: url("assets/fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible"; src: url("assets/fonts/AtkinsonHyperlegible-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
 :root {
   --bg: #ffffff;
-  --fg: #0f172a;
-  --muted: #334155;
+  --fg: #16181C;
+  --muted: #4F5560;
   --link: #0b57d0;
   --link-visited: #5b21b6;
-  --accent: #0f172a;
-  --border: #cbd5e1;
-  --code-bg: #f1f5f9;
+  --accent: #16181C;
+  --sign-yellow: #FFCC00;
+  --border: #CDD1D8;
+  --code-bg: #EEF0F3;
   --focus: #0b57d0;
-  --header-bg: #f8fafc;
+  --header-bg: #16181C;
+  --header-fg: #F4F5F7;
+  --header-muted: #B8BDC6;
 }
 
 * { box-sizing: border-box; }
@@ -22,7 +27,7 @@ html {
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   color: var(--fg);
   background: var(--bg);
 }
@@ -54,19 +59,21 @@ body {
 /* Header */
 header[role="banner"] {
   background: var(--header-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 1.5rem 0 1rem;
+  color: var(--header-fg);
+  padding: 2rem 0 1.25rem;
 }
+header[role="banner"] a { color: var(--header-fg); }
+header[role="banner"] a:focus { outline-color: var(--sign-yellow); }
 header h1 {
   margin: 0 0 0.25rem;
-  font-size: 2rem;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--accent);
+  font-size: 2.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--sign-yellow);
 }
 .tagline {
   margin: 0 0 1rem;
-  color: var(--muted);
+  color: var(--header-muted);
   font-size: 1rem;
   max-width: 70ch;
 }
@@ -215,3 +222,7 @@ footer a { color: var(--link); }
   a { color: #000; }
   .skip-link { display: none; }
 }
+
+figure { margin: 1.5rem 0; }
+figure img { width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; }
+figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; max-width: 70ch; }

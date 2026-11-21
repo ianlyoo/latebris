@@ -7,6 +7,8 @@ allowed to test.
 
 [한국어](README.ko.md) · [Releases](https://github.com/ianlyoo/latebris/releases) · [Verification](docs/VERIFICATION.md) · [Limitations](docs/LIMITATIONS.md) · MIT licence
 
+![Latebris on Android: Status with a preset live, Move, Presets, and Options in dark mode](docs/assets/app-screens.png)
+
 ## What it does
 
 A preset bundles a position, a list of Wi-Fi access points and a list of LTE
@@ -52,9 +54,9 @@ Also in the app:
 
 ## Install
 
-Download `latebris-0.2.0.apk` from [Releases](https://github.com/ianlyoo/latebris/releases).
+Download `latebris-0.3.0.apk` from [Releases](https://github.com/ianlyoo/latebris/releases).
 
-**Uninstall any 0.1.x build first.** 0.2.0 changes the package name from
+**Uninstall any 0.1.x build first.** Since 0.2.0 the package name has changed from
 `com.example.gpstick` to `io.github.ianlyoo.latebris`, so an old build would stay
 installed next to it and act on the same signals.
 

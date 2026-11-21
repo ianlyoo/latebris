@@ -3,23 +3,28 @@
 <head>
 <meta charset="utf-8">
 <style>
+@font-face{font-family:"Atkinson Hyperlegible";src:url("assets/fonts/AtkinsonHyperlegible-Bold.ttf") format("truetype");font-weight:700}
+@font-face{font-family:"Atkinson Hyperlegible";src:url("assets/fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype");font-weight:400}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1280px;height:640px;overflow:hidden}
 body{
-  width:1280px;height:640px;
-  background:#0f172a;
-  color:#f8fafc;
-  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-  display:flex;flex-direction:column;justify-content:center;padding:72px 64px;
+  background:#16181C;color:#F4F5F7;
+  font-family:"Atkinson Hyperlegible",system-ui,sans-serif;
+  display:grid;grid-template-columns:1fr 420px;align-items:center;gap:56px;padding:0 72px;
 }
-h1{font-size:72px;letter-spacing:-0.04em;line-height:1;margin:0 0 24px 0;font-weight:800}
-.tagline{font-size:26px;line-height:1.4;color:#cbd5e1;max-width:1080px}
-.measured{margin-top:32px;font-size:16px;letter-spacing:0.08em;text-transform:uppercase;color:#94a3b8}
+h1{font-size:96px;line-height:1;font-weight:700;color:#FFCC00;letter-spacing:-0.02em;margin-bottom:28px}
+.tagline{font-size:30px;line-height:1.35;max-width:600px}
+.measured{margin-top:28px;font-size:20px;color:#B8BDC6}
+.phone{align-self:end;height:600px;overflow:hidden;border-radius:28px 28px 0 0;border:8px solid #2C3038;border-bottom:0}
+.phone img{width:100%;display:block}
 </style>
 </head>
 <body>
+<div>
 <h1>latebris</h1>
 <p class="tagline">Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android.</p>
 <p class="measured">Verified on Android 14 and 15 emulators</p>
+</div>
+<div class="phone"><img src="assets/app-status.png" alt=""></div>
 </body>
 </html>

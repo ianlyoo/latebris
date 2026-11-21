@@ -88,8 +88,8 @@ APK 기본 경로 예시:
 권한이 없으면 보통 아래 현상이 보입니다.
 
 - Start 버튼이 비활성화됨
-- Permission readiness가 준비되지 않은 상태로 표시됨
-- Request permissions 버튼이 표시됨
+- Status 화면 Readiness 오른쪽에 Action needed가 표시됨
+- Status 화면 Readiness 아래에 Grant permissions 버튼이 표시됨
 
 ### 3-4. 개발자 옵션 열기
 

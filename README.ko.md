@@ -7,6 +7,9 @@ Latebris는 저장해 둔 위치 환경을 안드로이드 기기에서 다시 �
 
 [English](README.md) · [릴리스](https://github.com/ianlyoo/latebris/releases) · [검증 기록](docs/VERIFICATION.md) · [한계](docs/LIMITATIONS.md) · MIT 라이선스
 
+
+![Android의 Latebris: 프리셋이 실행 중인 Status, Move, Presets, 다크 모드의 Options](docs/assets/app-screens.png)
+
 ## 하는 일
 
 프리셋 하나에 좌표, Wi-Fi 공유기 목록, LTE 기지국 목록이 함께 들어 있습니다.
@@ -51,7 +54,7 @@ Stop을 누르면 두 프로브 모두 실제 좌표(48.8584, 2.2945)와 에뮬�
 
 ## 설치
 
-[릴리스](https://github.com/ianlyoo/latebris/releases)에서 `latebris-0.2.0.apk`를 받습니다.
+[릴리스](https://github.com/ianlyoo/latebris/releases)에서 `latebris-0.3.0.apk`를 받습니다.
 
 **0.1.x 버전이 깔려 있다면 먼저 지워 주세요.** 0.2.0에서 패키지 이름이
 `com.example.gpstick`에서 `io.github.ianlyoo.latebris`로 바뀌었습니다. 그래서 옛

@@ -4,6 +4,10 @@ How Latebris 0.2.0 was checked, and what each check showed. Everything here ran
 on emulators on one Mac (Apple silicon) in November 2026. What was not checked is
 in [LIMITATIONS.md](LIMITATIONS.md).
 
+0.3.0 changed only the interface. The whole run below was repeated with the 0.3.0
+build on both emulators and gave the same readings at every step; the getter
+cost in scope was 4 to 22 ms and under 1 ms outside it.
+
 ## Set-up
 
 | | Hook path | Stock path |

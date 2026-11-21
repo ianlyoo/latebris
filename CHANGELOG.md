@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.0]
+
+A new interface. The app logic, hooks and stored data are unchanged; the same
+verification matrix passed on the rooted Android 14 and stock Android 15
+emulators with this build.
+
+### Changed
+- The interface is redrawn in the style of airport wayfinding signs. An ink
+  "location sign" at the top of Status names the preset and holds Start and
+  Stop; yellow marks only what is live.
+- A bottom tab bar (Status, Move, Presets, Options) replaces the side drawer.
+  Help moved into Options as "How it works".
+- Status lists each signal (GPS, Wi-Fi scan, LTE cells, GPS drift) as Live,
+  On Start or Off. When Latebris cannot see the LSPosed module, Wi-Fi and cells
+  read "Hook path" instead of claiming to be live.
+- Presets show each preset's GPS accuracy, Wi-Fi count and cell count.
+- Move picks the destination from a list and the travel mode from a segmented
+  control.
+- The app follows the system light or dark setting. Text is set in Atkinson
+  Hyperlegible (SIL Open Font License 1.1, bundled).
+- Messages appear as snackbars instead of toasts.
+- The "Movement simulation" switch is now named "GPS drift", which is what it
+  does: small random steps around the preset point.
+- The bundled presets' descriptions say what each preset holds instead of
+  describing routes the app does not play.
+
 ## [0.2.0]
 
 The LSPosed hooks now work in other apps. Verified on an Android 14 (API 34)
