@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Latebris</string>
     <string name="notification_channel_name">Simulation status</string>
-    <string name="notification_channel_description">Shows whether the internal QA simulation is running</string>
+    <string name="notification_channel_description">Shows whether a simulation is running</string>
     <string name="notification_title">Latebris simulation running</string>
     <string name="notification_text">Tap to open the app</string>
 </resources>

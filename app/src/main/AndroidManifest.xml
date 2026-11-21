@@ -28,7 +28,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Latebris internal QA location environment simulator" />
+            android:value="Serves a preset GPS position, Wi-Fi scan and LTE cells to the apps in its scope" />
         <meta-data
             android:name="xposedminversion"
             android:value="93" />

@@ -876,7 +876,7 @@ private fun StatusPanel(
         null
     }
     val primaryActionDescription = when {
-        isRunning -> "Stop the active simulation and return the device to its idle QA state."
+        isRunning -> "Stop the simulation and return the device to its real location and signals."
         !state.permissionsReady -> "Grant the required permissions before starting the simulation."
         highlightedPreset == null -> "Select a preset from Presets to enable Start."
         !state.canStartSimulation -> "Review the staged options before starting the simulation."

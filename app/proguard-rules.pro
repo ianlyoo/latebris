@@ -1,1 +1,1 @@
-# Scaffold project: keep defaults until real release requirements exist.
+# No project rules: release builds are not minified (isMinifyEnabled = false).
