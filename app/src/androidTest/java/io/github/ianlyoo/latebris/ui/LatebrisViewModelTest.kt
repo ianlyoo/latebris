@@ -147,13 +147,13 @@ class LatebrisViewModelTest {
 
         viewModel.openPresetEditor(presetId = null)
         viewModel.updateEditorName("Seoul")
-        viewModel.updateEditorLatitude("£³£·,£µ£¶£¶£µ")
-        viewModel.updateEditorLongitude("?£±£²£¶,£¹£·£¸£°")
-        viewModel.updateEditorAltitude("£±£°,£µ")
+        viewModel.updateEditorLatitude("ï¼“ï¼—,ï¼•ï¼–ï¼–ï¼•")
+        viewModel.updateEditorLongitude("ï¼ï¼‘ï¼’ï¼–,ï¼™ï¼—ï¼˜ï¼")
+        viewModel.updateEditorAltitude("ï¼‘ï¼,ï¼•")
 
-        assertEquals("£³£·,£µ£¶£¶£µ", viewModel.presetEditorState.latitude)
-        assertEquals("?£±£²£¶,£¹£·£¸£°", viewModel.presetEditorState.longitude)
-        assertEquals("£±£°,£µ", viewModel.presetEditorState.altitude)
+        assertEquals("ï¼“ï¼—,ï¼•ï¼–ï¼–ï¼•", viewModel.presetEditorState.latitude)
+        assertEquals("ï¼ï¼‘ï¼’ï¼–,ï¼™ï¼—ï¼˜ï¼", viewModel.presetEditorState.longitude)
+        assertEquals("ï¼‘ï¼,ï¼•", viewModel.presetEditorState.altitude)
         assertTrue(viewModel.presetEditorState.isSaveEnabled)
         assertTrue(viewModel.savePresetEdits())
 
