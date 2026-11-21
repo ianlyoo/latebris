@@ -40,6 +40,7 @@ class ProbeReadings(private val context: Context) {
             getterCost(current),
             wifiScan(),
             cellInfo(),
+            cellInfoUpdate(),
         )
     }
 
@@ -121,6 +122,27 @@ class ProbeReadings(private val context: Context) {
     private fun cellInfo(): JSONObject = base("cell", "tm.allCellInfo").apply {
         val cells = JSONArray()
         telephonyManager.allCellInfo.orEmpty().forEach { cells.put(describe(it)) }
+        put("count", cells.length())
+        put("cells", cells)
+    }
+
+    private fun cellInfoUpdate(): JSONObject = base("cell", "tm.requestCellInfoUpdate").apply {
+        val latch = CountDownLatch(1)
+        var received: List<CellInfo> = emptyList()
+        val executor = Executors.newSingleThreadExecutor()
+        telephonyManager.requestCellInfoUpdate(
+            executor,
+            object : TelephonyManager.CellInfoCallback() {
+                override fun onCellInfo(cellInfo: MutableList<CellInfo>) {
+                    received = cellInfo
+                    latch.countDown()
+                }
+            },
+        )
+        latch.await(LOCATION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        executor.shutdown()
+        val cells = JSONArray()
+        received.forEach { cells.put(describe(it)) }
         put("count", cells.length())
         put("cells", cells)
     }

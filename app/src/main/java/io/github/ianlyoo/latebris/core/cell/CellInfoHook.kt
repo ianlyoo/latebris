@@ -1,188 +1,91 @@
 package io.github.ianlyoo.latebris.core.cell
 
-import android.os.Build
-import android.telephony.CellInfoLte
-import android.telephony.CellLocation
+import android.telephony.CellInfo
 import android.telephony.TelephonyManager
 import android.telephony.gsm.GsmCellLocation
 import android.util.Log
-import io.github.ianlyoo.latebris.data.preset.CellTower
-import io.github.ianlyoo.latebris.hook.HookStateReader
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
-import kotlin.random.Random
+import io.github.ianlyoo.latebris.data.preset.CellTower
+import io.github.ianlyoo.latebris.hook.HookStateReader
+import java.util.concurrent.Executor
 
+/**
+ * Replaces the cell list an app reads through getAllCellInfo(), requestCellInfoUpdate()
+ * and the legacy getCellLocation() with the preset's LTE towers; the first tower is the
+ * registered (serving) cell.
+ */
 class CellInfoHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        runCatching {
+        install(lpparam, "getAllCellInfo") {
             XposedHelpers.findAndHookMethod(
                 TelephonyManager::class.java,
                 "getAllCellInfo",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        val towers = HookStateReader.current()?.cellTowers.orEmpty()
-                        if (towers.isEmpty()) {
-                            return
-                        }
+                        presetCells()?.let { param.result = it }
+                    }
+                },
+            )
+        }
 
-                        val mockedInfos = towers.mapNotNull(::buildCellInfoLte)
-                        if (mockedInfos.isNotEmpty()) {
-                            param.result = ArrayList(mockedInfos)
+        install(lpparam, "requestCellInfoUpdate") {
+            XposedHelpers.findAndHookMethod(
+                TelephonyManager::class.java,
+                "requestCellInfoUpdate",
+                Executor::class.java,
+                TelephonyManager.CellInfoCallback::class.java,
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val original = param.args[1] as? TelephonyManager.CellInfoCallback ?: return
+                        param.args[1] = object : TelephonyManager.CellInfoCallback() {
+                            override fun onCellInfo(cellInfo: MutableList<CellInfo>) {
+                                original.onCellInfo(presetCells() ?: cellInfo)
+                            }
+
+                            override fun onError(errorCode: Int, detail: Throwable?) {
+                                original.onError(errorCode, detail)
+                            }
                         }
                     }
                 },
             )
+        }
 
+        install(lpparam, "getCellLocation") {
             XposedHelpers.findAndHookMethod(
                 TelephonyManager::class.java,
                 "getCellLocation",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         val tower = HookStateReader.current()?.cellTowers?.firstOrNull() ?: return
-                        param.result = buildCellLocation(tower) ?: param.result
+                        param.result = GsmCellLocation().apply { setLacAndCid(tower.tac, tower.ci) }
                     }
                 },
             )
-            Log.i(TAG, "Installed cell hooks for ${lpparam.packageName}")
-        }.onFailure { throwable ->
-            Log.w(TAG, "Failed to install cell hooks for ${lpparam.packageName}", throwable)
         }
     }
 
-    private fun buildCellInfoLte(tower: CellTower): CellInfoLte? = runCatching {
-        val cellInfo = CellInfoLte::class.java.getDeclaredConstructor().newInstance()
-        val identity = buildCellIdentityLte(tower)
-        val signalStrength = buildCellSignalStrengthLte()
-
-        invokeMethod(cellInfo, "setCellIdentity", identity)
-        invokeMethod(cellInfo, "setCellSignalStrength", signalStrength)
-        setBooleanFieldIfPresent(cellInfo, "mRegistered", true)
-        cellInfo
-    }.getOrNull()
-
-    private fun buildCellIdentityLte(tower: CellTower): Any {
-        val clazz = Class.forName("android.telephony.CellIdentityLte")
-        val constructor = clazz.declaredConstructors
-            .sortedByDescending { it.parameterTypes.size }
-            .firstOrNull() ?: error("CellIdentityLte constructor not found")
-
-        constructor.isAccessible = true
-        val args = constructor.parameterTypes.mapIndexed { index, parameterType ->
-            valueForCellIdentityParameter(index, parameterType, tower)
-        }.toTypedArray()
-        return constructor.newInstance(*args)
+    /** The preset's towers as CellInfo, or null to leave the real list untouched. */
+    private fun presetCells(): MutableList<CellInfo>? {
+        val towers = HookStateReader.current()?.cellTowers?.takeIf { it.isNotEmpty() } ?: return null
+        return runCatching { towers.mapIndexed(::toCellInfo).toMutableList<CellInfo>() }
+            .onFailure { Log.w(TAG, "Could not build preset cells; leaving the real list", it) }
+            .getOrNull()
     }
 
-    private fun buildCellSignalStrengthLte(): Any {
-        val clazz = Class.forName("android.telephony.CellSignalStrengthLte")
-        val constructor = clazz.declaredConstructors
-            .sortedByDescending { it.parameterTypes.size }
-            .firstOrNull() ?: error("CellSignalStrengthLte constructor not found")
+    private fun toCellInfo(index: Int, tower: CellTower): CellInfo =
+        CellInfoFactory.create(tower, registered = index == 0)
 
-        constructor.isAccessible = true
-        val rsrp = RANDOM.nextInt(from = -95, until = -84)
-        val rsrq = RANDOM.nextInt(from = -12, until = -7)
-        val args = constructor.parameterTypes.mapIndexed { index, parameterType ->
-            valueForSignalStrengthParameter(index, parameterType, rsrp, rsrq)
-        }.toTypedArray()
-        return constructor.newInstance(*args)
-    }
-
-    private fun buildCellLocation(tower: CellTower): CellLocation? = runCatching {
-        GsmCellLocation().apply {
-            setLacAndCid(tower.tac, tower.ci)
-        }
-    }.getOrNull()
-
-    private fun valueForCellIdentityParameter(index: Int, type: Class<*>, tower: CellTower): Any? {
-        if (type == Int::class.javaPrimitiveType || type == Int::class.javaObjectType) {
-            return when {
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> when (index) {
-                    0 -> tower.mcc
-                    1 -> tower.mnc
-                    2 -> tower.ci
-                    3 -> tower.pci
-                    else -> tower.tac
-                }
-
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.P -> when (index) {
-                    0 -> tower.mcc
-                    1 -> tower.mnc
-                    2 -> tower.ci
-                    3 -> tower.pci
-                    4 -> tower.tac
-                    else -> tower.earfcn
-                }
-
-                else -> when (index) {
-                    2 -> tower.ci
-                    3 -> tower.pci
-                    4 -> tower.tac
-                    5 -> tower.earfcn
-                    6 -> Int.MAX_VALUE
-                    else -> 0
-                }
-            }
-        }
-
-        if (type == String::class.java) {
-            return when (index) {
-                0 -> tower.mcc.toString()
-                1 -> tower.mnc.toString()
-                else -> ""
-            }
-        }
-
-        if (type == IntArray::class.java) {
-            return intArrayOf()
-        }
-
-        if (java.util.Collection::class.java.isAssignableFrom(type)) {
-            return emptyList<String>()
-        }
-
-        return null
-    }
-
-    private fun valueForSignalStrengthParameter(index: Int, type: Class<*>, rsrp: Int, rsrq: Int): Any? {
-        if (type == Int::class.javaPrimitiveType || type == Int::class.javaObjectType) {
-            return when (index) {
-                0 -> -70
-                1 -> rsrp
-                2 -> rsrq
-                3 -> 30
-                4 -> 10
-                5 -> 1
-                6 -> 0
-                else -> 0
-            }
-        }
-
-        return null
-    }
-
-    private fun invokeMethod(target: Any, methodName: String, argument: Any) {
-        val method = target.javaClass.methods.firstOrNull {
-            it.name == methodName && it.parameterTypes.size == 1
-        } ?: target.javaClass.declaredMethods.first {
-            it.name == methodName && it.parameterTypes.size == 1
-        }
-        method.isAccessible = true
-        method.invoke(target, argument)
-    }
-
-    private fun setBooleanFieldIfPresent(target: Any, fieldName: String, value: Boolean) {
-        runCatching {
-            val field = target.javaClass.getDeclaredField(fieldName)
-            field.isAccessible = true
-            field.setBoolean(target, value)
-        }
+    private fun install(lpparam: XC_LoadPackage.LoadPackageParam, method: String, hook: () -> Unit) {
+        runCatching(hook)
+            .onSuccess { Log.i(TAG, "Installed $method hook for ${lpparam.packageName}") }
+            .onFailure { Log.w(TAG, "Failed to install $method hook for ${lpparam.packageName}", it) }
     }
 
     private companion object {
         const val TAG = "LatebrisCellHook"
-        val RANDOM = Random(System.currentTimeMillis())
     }
 }
