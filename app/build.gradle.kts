@@ -33,11 +33,11 @@ val hasReleaseSigning = signingStoreFile.isPresent &&
     signingKeyPassword.isPresent
 
 android {
-    namespace = "com.example.gpstick"
+    namespace = "io.github.ianlyoo.latebris"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.gpstick"
+        applicationId = "io.github.ianlyoo.latebris"
         minSdk = 31
         targetSdk = 35
         versionCode = 3

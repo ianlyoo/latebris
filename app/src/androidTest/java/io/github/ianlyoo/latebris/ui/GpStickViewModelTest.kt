@@ -1,0 +1,465 @@
+package io.github.ianlyoo.latebris.ui
+
+import android.content.Context
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import io.github.ianlyoo.latebris.data.preset.CapturedDeviceState
+import io.github.ianlyoo.latebris.data.preset.DeviceStateCaptureDataSource
+import io.github.ianlyoo.latebris.data.preset.GpsPreset
+import io.github.ianlyoo.latebris.data.preset.InMemoryPresetRepository
+import io.github.ianlyoo.latebris.data.preset.LocationPreset
+import io.github.ianlyoo.latebris.service.ForegroundServiceController
+import io.github.ianlyoo.latebris.service.ServiceCommandFactory
+import io.github.ianlyoo.latebris.service.SimulationStateStore
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class GpStickViewModelTest {
+
+    @Test
+    fun startSimulation_emitsMessage_whenAlreadyRunning() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        val preset = LocationPreset(
+            id = "preset-1",
+            name = "Demo",
+            summary = "Demo",
+            gps = GpsPreset(1.0, 2.0, 3.0, 4f),
+        )
+
+        simulationStateStore.setSimulationActive(
+            activePresetId = preset.id,
+            sessionId = "session-running-test",
+        )
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(listOf(preset)),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.startSimulation()
+
+        assertEquals("Simulation is already running.", messageDeferred.await())
+    }
+
+    @Test
+    fun startSimulation_emitsMessage_whenNoPresetSelected() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(emptyList()),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.startSimulation()
+
+        assertEquals("No preset selected.", messageDeferred.await())
+    }
+
+    @Test
+    fun stopSimulation_emitsMessage_whenAlreadyStopped() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(emptyList()),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.stopSimulation()
+
+        assertEquals("Simulation is already stopped.", messageDeferred.await())
+    }
+
+    @Test
+    fun startSimulation_emitsMessage_whenControllerReturnsFailure() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val preset = LocationPreset(
+            id = "preset-2",
+            name = "Demo",
+            summary = "Demo",
+            gps = GpsPreset(1.0, 2.0, 3.0, 4f),
+        )
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(listOf(preset)),
+            serviceController = FakeServiceController(startResult = false),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.startSimulation()
+
+        assertEquals(
+            "Unable to start simulation. Check required permissions and active features.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun coordinateEditorFields_normalizeDeviceKeyboardDecimalInput() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        val repository = InMemoryPresetRepository(emptyList())
+
+        val viewModel = GpStickViewModel(
+            presetRepository = repository,
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        viewModel.openPresetEditor(presetId = null)
+        viewModel.updateEditorName("Seoul")
+        viewModel.updateEditorLatitude("£³£·,£µ£¶£¶£µ")
+        viewModel.updateEditorLongitude("?£±£²£¶,£¹£·£¸£°")
+        viewModel.updateEditorAltitude("£±£°,£µ")
+
+        assertEquals("£³£·,£µ£¶£¶£µ", viewModel.presetEditorState.latitude)
+        assertEquals("?£±£²£¶,£¹£·£¸£°", viewModel.presetEditorState.longitude)
+        assertEquals("£±£°,£µ", viewModel.presetEditorState.altitude)
+        assertTrue(viewModel.presetEditorState.isSaveEnabled)
+        assertTrue(viewModel.savePresetEdits())
+
+        val savedPreset = repository.getPresets().single()
+        assertEquals(37.5665, savedPreset.gps.latitude, 0.0)
+        assertEquals(-126.9780, savedPreset.gps.longitude, 0.0)
+        assertEquals(10.5, savedPreset.gps.altitude, 0.0)
+    }
+
+    @Test
+    fun applyPendingOptions_emitsMessage_whenControllerReturnsFailure() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val preset = LocationPreset(
+            id = "preset-apply",
+            name = "Demo",
+            summary = "Demo",
+            gps = GpsPreset(1.0, 2.0, 3.0, 4f),
+        )
+
+        simulationStateStore.setSimulationActive(
+            activePresetId = preset.id,
+            sessionId = "session-apply-test",
+        )
+        simulationStateStore.setMovementSimulationEnabled(true)
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(listOf(preset)),
+            serviceController = FakeServiceController(startResult = true, applyPendingOptionsResult = false),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.applyPendingOptions()
+
+        assertEquals(
+            "Unable to send pending options to the active simulation.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun startMovement_emitsMessage_whenCurrentLocationCaptureFails() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        val presets = listOf(
+            LocationPreset(
+                id = "origin",
+                name = "Origin",
+                summary = "Origin",
+                gps = GpsPreset(1.0, 2.0, 3.0, 4f),
+            ),
+            LocationPreset(
+                id = "destination",
+                name = "Destination",
+                summary = "Destination",
+                gps = GpsPreset(5.0, 6.0, 7.0, 4f),
+            ),
+        )
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(presets),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        viewModel.selectMoveDestination("destination")
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.startMovement()
+
+        assertEquals(
+            "Unable to capture the current device location. Check location permission and current position.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun startMovement_autoStartsFromCurrentLocation_whenSimulationIsStopped() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        val destination = LocationPreset(
+            id = "destination",
+            name = "Destination",
+            summary = "Destination",
+            gps = GpsPreset(5.0, 6.0, 7.0, 4f),
+        )
+        val fakeController = FakeServiceController(startResult = true)
+        val capturedState = CapturedDeviceState(
+            gps = GpsPreset(37.5, 127.0, 18.0, 8f),
+            wifiNetworks = emptyList(),
+            cellTowers = emptyList(),
+        )
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(listOf(destination)),
+            serviceController = fakeController,
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(capturedState = capturedState),
+        )
+
+        viewModel.selectMoveDestination(destination.id)
+        viewModel.startMovement()
+
+        withTimeout(1000) {
+            while (!fakeController.startMovementFromCurrentLocationCalled) {
+                delay(10)
+            }
+        }
+
+        assertEquals(destination.id, fakeController.lastDestinationPresetId)
+        assertEquals(37.5, fakeController.lastOriginPreset!!.gps.latitude, 0.0)
+        assertTrue(
+            fakeController.lastOriginPreset?.id?.startsWith(ServiceCommandFactory.RUNTIME_ORIGIN_PRESET_ID_PREFIX) == true,
+        )
+    }
+
+    private suspend fun captureFirstUiEventMessage(viewModel: GpStickViewModel): String {
+        return coroutineScope {
+            val message = CompletableDeferred<String>()
+            val collector = launch(Dispatchers.Main.immediate) {
+                viewModel.events.collect { event ->
+                    if (event is GpStickUiEvent.ShowMessage) {
+                        message.complete(event.message)
+                    }
+                }
+            }
+
+            try {
+                withTimeout(1000) {
+                    message.await()
+                }
+            } finally {
+                collector.cancel()
+            }
+        }
+    }
+
+    @Test
+    fun captureCurrentDeviceState_emitsMessage_whenSimulationIsRunning() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        simulationStateStore.setSimulationActive(
+            activePresetId = "preset-running",
+            sessionId = "capture-running-session",
+        )
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(emptyList()),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.captureCurrentDeviceState { }
+
+        assertEquals(
+            "Stop the current simulation before capturing device state.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun captureCurrentDeviceState_emitsMessage_whenCaptureFails() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(emptyList()),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(capturedState = null),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        viewModel.captureCurrentDeviceState { }
+
+        assertEquals(
+            "Unable to capture current state. Check location permission and current device location.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun simulationFailure_emitsMessage_whenStoreReportsNewFailure() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(emptyList()),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        simulationStateStore.setSimulationInactive("Simulation stopped because GPS mocking failed.")
+
+        assertEquals(
+            "Simulation stopped because GPS mocking failed.",
+            messageDeferred.await(),
+        )
+    }
+
+    @Test
+    fun persistedSimulationFailure_emitsMessage_whenViewModelStarts() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val simulationStateStore = prepareStore(context)
+        simulationStateStore.setSimulationInactive("Simulation stopped because GPS mocking failed.")
+
+        val viewModel = GpStickViewModel(
+            presetRepository = InMemoryPresetRepository(emptyList()),
+            serviceController = FakeServiceController(startResult = true),
+            simulationStateStore = simulationStateStore,
+            deviceStateCaptureRepository = FakeCaptureRepository(),
+        )
+
+        val messageDeferred = async(Dispatchers.Main.immediate) {
+            captureFirstUiEventMessage(viewModel)
+        }
+
+        assertEquals(
+            "Simulation stopped because GPS mocking failed.",
+            messageDeferred.await(),
+        )
+    }
+
+    private fun prepareStore(context: Context): SimulationStateStore {
+        val prefs = context.getSharedPreferences(
+            SimulationStateStore.PREF_NAME,
+            Context.MODE_PRIVATE,
+        )
+        prefs.edit().clear().commit()
+
+        val store = SimulationStateStore.getInstance(context)
+        store.load()
+        store.setFeaturesEnabled(true)
+        store.setGpsMockEnabled(true)
+        store.setWifiMockEnabled(true)
+        store.setCellMockEnabled(true)
+        store.setMovementSimulationEnabled(false)
+        return store
+    }
+
+    private class FakeServiceController(
+        private val startResult: Boolean,
+        private val applyPendingOptionsResult: Boolean = true,
+        private val startMovementResult: Boolean = true,
+        private val startMovementFromCurrentLocationResult: Boolean = true,
+        private val cancelMovementResult: Boolean = true,
+    ) : ForegroundServiceController {
+        var startMovementFromCurrentLocationCalled: Boolean = false
+        var lastOriginPreset: LocationPreset? = null
+        var lastDestinationPresetId: String? = null
+
+        override fun start(preset: LocationPreset): Boolean = startResult
+
+        override fun stop() {
+            // no-op in tests
+        }
+
+        override fun applyPendingOptions(): Boolean = applyPendingOptionsResult
+
+        override fun startMovement(
+            originPresetId: String,
+            destinationPresetId: String,
+            transportMode: io.github.ianlyoo.latebris.service.MovementTransportMode,
+            speedMetersPerSecond: Double,
+        ): Boolean = startMovementResult
+
+        override fun startMovementFromCurrentLocation(
+            originPreset: LocationPreset,
+            destinationPresetId: String,
+            transportMode: io.github.ianlyoo.latebris.service.MovementTransportMode,
+            speedMetersPerSecond: Double,
+        ): Boolean {
+            startMovementFromCurrentLocationCalled = true
+            lastOriginPreset = originPreset
+            lastDestinationPresetId = destinationPresetId
+            return startMovementFromCurrentLocationResult
+        }
+
+        override fun cancelMovement(): Boolean = cancelMovementResult
+    }
+
+    private class FakeCaptureRepository(
+        private val capturedState: io.github.ianlyoo.latebris.data.preset.CapturedDeviceState? = null,
+    ) : DeviceStateCaptureDataSource {
+        override fun captureCurrentState() = capturedState
+    }
+}
