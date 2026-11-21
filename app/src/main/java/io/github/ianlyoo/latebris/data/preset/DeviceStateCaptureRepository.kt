@@ -107,6 +107,7 @@ class DeviceStateCaptureRepository(context: Context) : DeviceStateCaptureDataSou
         ssid = scanResult.SSID,
         level = scanResult.level,
         frequency = scanResult.frequency,
+        capabilities = scanResult.capabilities,
     )
 
     private fun toCellTower(info: CellInfo): CellTower? {

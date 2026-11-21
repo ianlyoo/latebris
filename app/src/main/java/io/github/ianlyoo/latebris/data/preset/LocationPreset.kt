@@ -21,6 +21,8 @@ data class WifiNetwork(
     val ssid: String,
     val level: Int,
     val frequency: Int,
+    /** As reported by ScanResult.capabilities, for example "[WPA2-PSK-CCMP][ESS]"; null in older presets. */
+    val capabilities: String? = null,
 )
 
 data class CellTower(
