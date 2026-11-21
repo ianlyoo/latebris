@@ -59,8 +59,6 @@ tap_text() {
 open_latebris_status() {
   adb shell am start -W -n "$APP/.ui.MainActivity" >/dev/null
   sleep 2
-  tap_text Menu
-  sleep 1
   tap_text Status
   sleep 1
 }
