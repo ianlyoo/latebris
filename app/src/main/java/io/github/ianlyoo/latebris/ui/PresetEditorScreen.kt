@@ -1,16 +1,34 @@
 package io.github.ianlyoo.latebris.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.activity.compose.BackHandler
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -18,9 +36,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import io.github.ianlyoo.latebris.ui.theme.Figures
 import io.github.ianlyoo.latebris.ui.theme.LatebrisSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,399 +65,205 @@ fun PresetEditorScreen(
     BackHandler(onBack = onNavigateBack)
     Scaffold(
         modifier = Modifier.testTag(LatebrisTestTags.PRESET_EDITOR_SCREEN),
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
-                title = {
-                    Text(
-                        text = if (state.isNew) "Create preset" else "Edit preset",
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                },
+                title = { Text(if (state.isNew) "New preset" else "Edit preset") },
                 navigationIcon = {
-                    TextButton(
+                    IconButton(
                         onClick = onNavigateBack,
                         modifier = Modifier.testTag(LatebrisTestTags.PRESET_EDITOR_BACK),
                     ) {
-                        Text("Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-            )
-        },
-    ) { innerPadding ->
-        ConsoleScreenBackground(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LatebrisSpacing.screen, vertical = LatebrisSpacing.section),
-                verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.section),
-            ) {
-                EditorOverviewCard(state = state)
-                PresetDetailsSection(
-                    state = state,
-                    onNameChanged = onNameChanged,
-                    onLatitudeChanged = onLatitudeChanged,
-                    onLongitudeChanged = onLongitudeChanged,
-                    onAltitudeChanged = onAltitudeChanged,
-                )
-                WifiNetworksSection(
-                    wifiNetworks = state.wifiNetworks,
-                    onAddWifiNetwork = onAddWifiNetwork,
-                    onUpdateWifiNetwork = onUpdateWifiNetwork,
-                    onRemoveWifiNetwork = onRemoveWifiNetwork,
-                )
-                CellTowersSection(
-                    cellTowers = state.cellTowers,
-                    canAutoFill = state.canAutoFill,
-                    onAddCellTower = onAddCellTower,
-                    onUpdateCellTower = onUpdateCellTower,
-                    onRemoveCellTower = onRemoveCellTower,
-                    onAutoFill = onAutoFill,
-                    isAutoFillInProgress = isAutoFillInProgress,
-                )
-                state.validationMessage?.let { validationMessage ->
-                    ConsolePanelCard(containerColor = MaterialTheme.colorScheme.errorContainer) {
-                        Text(
-                            text = validationMessage,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
-                ) {
-                    Button(
+                actions = {
+                    TextButton(
                         onClick = onSave,
                         enabled = state.isSaveEnabled,
                         modifier = Modifier
-                            .weight(1f)
+                            .padding(end = LatebrisSpacing.sm)
                             .testTag(LatebrisTestTags.SAVE_PRESET_CONTROL),
                     ) {
-                        Text(if (state.isNew) "Create" else "Save")
+                        Text(text = if (state.isNew) "Create" else "Save", style = MaterialTheme.typography.labelLarge)
                     }
-                    if (state.canDelete) {
-                        OutlinedButton(
-                            onClick = onDelete,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag(LatebrisTestTags.DELETE_PRESET_CONTROL),
-                        ) {
-                            Text("Delete")
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = LatebrisSpacing.screen)
+                .padding(bottom = LatebrisSpacing.xxl),
+        ) {
+            state.validationMessage?.let { message ->
+                Notice(text = message, tone = NoticeTone.Problem, modifier = Modifier.padding(top = LatebrisSpacing.sm))
+            }
+
+            SectionHeading(text = "Place")
+            Column(verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm)) {
+                EditorField(
+                    value = state.name,
+                    onValueChange = onNameChanged,
+                    label = "Name",
+                    testTag = LatebrisTestTags.PRESET_NAME_FIELD,
+                    figures = false,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm)) {
+                    EditorField(
+                        value = state.latitude,
+                        onValueChange = onLatitudeChanged,
+                        label = "Latitude",
+                        testTag = LatebrisTestTags.PRESET_LATITUDE_FIELD,
+                        modifier = Modifier.weight(1f),
+                    )
+                    EditorField(
+                        value = state.longitude,
+                        onValueChange = onLongitudeChanged,
+                        label = "Longitude",
+                        testTag = LatebrisTestTags.PRESET_LONGITUDE_FIELD,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                EditorField(
+                    value = state.altitude,
+                    onValueChange = onAltitudeChanged,
+                    label = "Altitude (m)",
+                    testTag = LatebrisTestTags.PRESET_ALTITUDE_FIELD,
+                )
+            }
+
+            SectionHeading(text = "Wi-Fi networks") {
+                TextButton(
+                    onClick = onAddWifiNetwork,
+                    modifier = Modifier.testTag(LatebrisTestTags.ADD_WIFI_ROW_CONTROL),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text("Add", modifier = Modifier.padding(start = LatebrisSpacing.xs))
+                }
+            }
+            Text(
+                text = "Returned by WifiManager scans in apps in the LSPosed scope.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = LatebrisSpacing.sm),
+            )
+            if (state.wifiNetworks.isEmpty()) {
+                EmptyLine("No Wi-Fi networks. Scans in scope will return an empty list.")
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm)) {
+                state.wifiNetworks.forEachIndexed { index, row ->
+                    EntryGroup(
+                        title = row.ssid.ifBlank { "Network ${index + 1}" },
+                        pictogram = Pictogram.Wifi,
+                        onRemove = { onRemoveWifiNetwork(index) },
+                        removeLabel = "Remove network ${index + 1}",
+                        removeTag = LatebrisTestTags.removeWifiRowControl(index),
+                    ) {
+                        EditorField(
+                            value = row.ssid,
+                            onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Ssid, it) },
+                            label = "SSID",
+                            figures = false,
+                        )
+                        EditorField(
+                            value = row.bssid,
+                            onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Bssid, it) },
+                            label = "BSSID",
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm)) {
+                            EditorField(
+                                value = row.level,
+                                onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Level, it) },
+                                label = "Level (dBm)",
+                                modifier = Modifier.weight(1f),
+                            )
+                            EditorField(
+                                value = row.frequency,
+                                onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Frequency, it) },
+                                label = "Frequency (MHz)",
+                                keyboardType = KeyboardType.Number,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun EditorOverviewCard(state: PresetEditorUiState) {
-    ConsolePanelCard(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        ConsoleSectionHeader(
-            eyebrow = "Editor",
-            title = if (state.isNew) "New preset draft" else "Preset workspace",
-            description = if (state.isNew) {
-                "Start with coordinates, then add surrounding Wi-Fi or cell data before saving."
-            } else {
-                "Review and refine the preset details without leaving the editor flow."
-            },
-            trailing = {
-                ConsoleBadge(
-                    text = if (state.isSaveEnabled) "Ready to save" else "Needs review",
-                    highlighted = state.isSaveEnabled,
-                )
-            },
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
-        ) {
-            EditorMetric(
-                modifier = Modifier.weight(1f),
-                label = "Wi-Fi rows",
-                value = state.wifiNetworks.size.toString(),
-            )
-            EditorMetric(
-                modifier = Modifier.weight(1f),
-                label = "Cell rows",
-                value = state.cellTowers.size.toString(),
-            )
-            EditorMetric(
-                modifier = Modifier.weight(1f),
-                label = "Mode",
-                value = if (state.isNew) "Create" else "Edit",
-            )
-        }
-    }
-}
-
-@Composable
-private fun EditorMetric(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    ConsolePanelCard(
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-@Composable
-private fun PresetDetailsSection(
-    state: PresetEditorUiState,
-    onNameChanged: (String) -> Unit,
-    onLatitudeChanged: (String) -> Unit,
-    onLongitudeChanged: (String) -> Unit,
-    onAltitudeChanged: (String) -> Unit,
-) {
-    SectionCard(
-        eyebrow = "Coordinates",
-        title = "Preset details",
-        description = "Define the location core before layering in captured network context.",
-    ) {
-        EditorTextField(
-            value = state.name,
-            onValueChange = onNameChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = "Name",
-            testTag = LatebrisTestTags.PRESET_NAME_FIELD,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
-        ) {
-            EditorTextField(
-                value = state.latitude,
-                onValueChange = onLatitudeChanged,
-                modifier = Modifier.weight(1f),
-                label = "Latitude",
-                keyboardType = KeyboardType.Text,
-                testTag = LatebrisTestTags.PRESET_LATITUDE_FIELD,
-            )
-            EditorTextField(
-                value = state.longitude,
-                onValueChange = onLongitudeChanged,
-                modifier = Modifier.weight(1f),
-                label = "Longitude",
-                keyboardType = KeyboardType.Text,
-                testTag = LatebrisTestTags.PRESET_LONGITUDE_FIELD,
-            )
-        }
-        EditorTextField(
-            value = state.altitude,
-            onValueChange = onAltitudeChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = "Altitude",
-            keyboardType = KeyboardType.Text,
-            testTag = LatebrisTestTags.PRESET_ALTITUDE_FIELD,
-        )
-    }
-}
-
-@Composable
-private fun WifiNetworksSection(
-    wifiNetworks: List<WifiNetworkEditorUiState>,
-    onAddWifiNetwork: () -> Unit,
-    onUpdateWifiNetwork: (Int, WifiNetworkField, String) -> Unit,
-    onRemoveWifiNetwork: (Int) -> Unit,
-) {
-    SectionCard(
-        eyebrow = "Radio context",
-        title = "Wi-Fi networks",
-        description = "Add one or more nearby networks to make the preset feel grounded in a real environment.",
-        action = {
-            TextButton(
-                onClick = onAddWifiNetwork,
-                modifier = Modifier.testTag(LatebrisTestTags.ADD_WIFI_ROW_CONTROL),
-            ) {
-                Text("Add row")
-            }
-        },
-    ) {
-        if (wifiNetworks.isEmpty()) {
-            EmptySectionText(text = "No Wi-Fi networks added yet.")
-        }
-
-        wifiNetworks.forEachIndexed { index, row ->
-            ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Network ${index + 1}",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    TextButton(
-                        onClick = { onRemoveWifiNetwork(index) },
-                        modifier = Modifier.testTag(LatebrisTestTags.removeWifiRowControl(index)),
-                    ) {
-                        Text("Remove")
-                    }
-                }
-                EditorTextField(
-                    value = row.ssid,
-                    onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Ssid, it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = "SSID",
-                )
-                EditorTextField(
-                    value = row.bssid,
-                    onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Bssid, it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = "BSSID",
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
-                ) {
-                    EditorTextField(
-                        value = row.level,
-                        onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Level, it) },
-                        modifier = Modifier.weight(1f),
-                        label = "Level",
-                        keyboardType = KeyboardType.Text,
-                    )
-                    EditorTextField(
-                        value = row.frequency,
-                        onValueChange = { onUpdateWifiNetwork(index, WifiNetworkField.Frequency, it) },
-                        modifier = Modifier.weight(1f),
-                        label = "Frequency",
-                        keyboardType = KeyboardType.Number,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CellTowersSection(
-    cellTowers: List<CellTowerEditorUiState>,
-    canAutoFill: Boolean,
-    onAddCellTower: () -> Unit,
-    onUpdateCellTower: (Int, CellTowerField, String) -> Unit,
-    onRemoveCellTower: (Int) -> Unit,
-    onAutoFill: () -> Unit,
-    isAutoFillInProgress: Boolean,
-) {
-    SectionCard(
-        eyebrow = "Carrier context",
-        title = "Cell towers",
-        description = "Layer in tower metadata manually or pull a quick auto-fill where supported.",
-        action = {
-            Row(horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.compact)) {
+            SectionHeading(text = "LTE cells") {
                 TextButton(
                     onClick = onAddCellTower,
                     modifier = Modifier.testTag(LatebrisTestTags.ADD_CELL_ROW_CONTROL),
                 ) {
-                    Text("Add row")
-                }
-                TextButton(
-                    onClick = onAutoFill,
-                    enabled = canAutoFill,
-                    modifier = Modifier.testTag(LatebrisTestTags.AUTO_FILL_CONTROL),
-                ) {
-                    Text(if (isAutoFillInProgress) "Filling…" else "Auto Fill")
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text("Add", modifier = Modifier.padding(start = LatebrisSpacing.xs))
                 }
             }
-        },
-    ) {
-        if (cellTowers.isEmpty()) {
-            EmptySectionText(text = "No cell towers added yet.")
-        }
-
-        cellTowers.forEachIndexed { index, row ->
-            ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Tower ${index + 1}",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    TextButton(
-                        onClick = { onRemoveCellTower(index) },
-                        modifier = Modifier.testTag(LatebrisTestTags.removeCellRowControl(index)),
+            Text(
+                text = "Returned by getAllCellInfo() in apps in the LSPosed scope. Auto Fill looks up cells near the coordinates on OpenCellID.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(
+                onClick = onAutoFill,
+                enabled = state.canAutoFill,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .padding(vertical = LatebrisSpacing.sm)
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag(LatebrisTestTags.AUTO_FILL_CONTROL),
+            ) {
+                if (isAutoFillInProgress) {
+                    CircularProgressIndicator(modifier = Modifier.padding(end = LatebrisSpacing.sm).heightIn(max = 18.dp), strokeWidth = 2.dp)
+                    Text("Looking up cells…")
+                } else {
+                    PictogramIcon(Pictogram.Cell, size = 18.dp)
+                    Text("Auto Fill", modifier = Modifier.padding(start = LatebrisSpacing.sm))
+                }
+            }
+            if (state.cellTowers.isEmpty()) {
+                EmptyLine("No cells. Apps in scope will see no cell information.")
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm)) {
+                state.cellTowers.forEachIndexed { index, row ->
+                    EntryGroup(
+                        title = if (row.ci.isNotBlank()) "Cell ${row.ci}" else "Cell ${index + 1}",
+                        pictogram = Pictogram.Cell,
+                        onRemove = { onRemoveCellTower(index) },
+                        removeLabel = "Remove cell ${index + 1}",
+                        removeTag = LatebrisTestTags.removeCellRowControl(index),
                     ) {
-                        Text("Remove")
+                        Row(horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm)) {
+                            CellField(row.mcc, "MCC", Modifier.weight(1f)) { onUpdateCellTower(index, CellTowerField.Mcc, it) }
+                            CellField(row.mnc, "MNC", Modifier.weight(1f)) { onUpdateCellTower(index, CellTowerField.Mnc, it) }
+                            CellField(row.tac, "TAC", Modifier.weight(1f)) { onUpdateCellTower(index, CellTowerField.Tac, it) }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm)) {
+                            CellField(row.ci, "CI", Modifier.weight(1f)) { onUpdateCellTower(index, CellTowerField.Ci, it) }
+                            CellField(row.pci, "PCI", Modifier.weight(1f)) { onUpdateCellTower(index, CellTowerField.Pci, it) }
+                            CellField(row.earfcn, "EARFCN", Modifier.weight(1f)) { onUpdateCellTower(index, CellTowerField.Earfcn, it) }
+                        }
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
+            }
+
+            if (state.canDelete) {
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier
+                        .padding(top = LatebrisSpacing.sectionGap)
+                        .heightIn(min = 48.dp)
+                        .testTag(LatebrisTestTags.DELETE_PRESET_CONTROL),
                 ) {
-                    NumberField(
-                        modifier = Modifier.weight(1f),
-                        value = row.mcc,
-                        onValueChange = { onUpdateCellTower(index, CellTowerField.Mcc, it) },
-                        label = "MCC",
-                    )
-                    NumberField(
-                        modifier = Modifier.weight(1f),
-                        value = row.mnc,
-                        onValueChange = { onUpdateCellTower(index, CellTowerField.Mnc, it) },
-                        label = "MNC",
-                    )
-                    NumberField(
-                        modifier = Modifier.weight(1f),
-                        value = row.ci,
-                        onValueChange = { onUpdateCellTower(index, CellTowerField.Ci, it) },
-                        label = "CI",
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
-                ) {
-                    NumberField(
-                        modifier = Modifier.weight(1f),
-                        value = row.pci,
-                        onValueChange = { onUpdateCellTower(index, CellTowerField.Pci, it) },
-                        label = "PCI",
-                    )
-                    NumberField(
-                        modifier = Modifier.weight(1f),
-                        value = row.tac,
-                        onValueChange = { onUpdateCellTower(index, CellTowerField.Tac, it) },
-                        label = "TAC",
-                    )
-                    NumberField(
-                        modifier = Modifier.weight(1f),
-                        value = row.earfcn,
-                        onValueChange = { onUpdateCellTower(index, CellTowerField.Earfcn, it) },
-                        label = "EARFCN",
-                    )
+                    Icon(Icons.Filled.Delete, contentDescription = null)
+                    Text("Delete preset", modifier = Modifier.padding(start = LatebrisSpacing.sm))
                 }
             }
         }
@@ -446,69 +271,80 @@ private fun CellTowersSection(
 }
 
 @Composable
-private fun SectionCard(
+private fun EntryGroup(
     title: String,
-    description: String,
-    modifier: Modifier = Modifier,
-    eyebrow: String? = null,
-    action: @Composable (() -> Unit)? = null,
+    pictogram: Pictogram,
+    onRemove: () -> Unit,
+    removeLabel: String,
+    removeTag: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    ConsolePanelCard(
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        ConsoleSectionHeader(
-            title = title,
-            eyebrow = eyebrow,
-            description = description,
-            trailing = action,
-        )
-        content()
+        Column(
+            modifier = Modifier.padding(start = LatebrisSpacing.md, end = LatebrisSpacing.md, bottom = LatebrisSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.sm),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PictogramIcon(pictogram, size = 18.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = LatebrisSpacing.sm),
+                )
+                IconButton(onClick = onRemove, modifier = Modifier.testTag(removeTag)) {
+                    Icon(Icons.Filled.Close, contentDescription = removeLabel)
+                }
+            }
+            content()
+        }
     }
 }
 
 @Composable
-private fun EditorTextField(
+private fun EditorField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.fillMaxWidth(),
     keyboardType: KeyboardType = KeyboardType.Text,
     testTag: String? = null,
+    figures: Boolean = true,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = if (testTag == null) modifier else modifier.testTag(testTag),
         label = { Text(label) },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         singleLine = true,
-        colors = consoleOutlinedTextFieldColors(),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        textStyle = if (figures) MaterialTheme.typography.bodyLarge.merge(Figures) else MaterialTheme.typography.bodyLarge,
+        modifier = if (testTag == null) modifier else modifier.testTag(testTag),
     )
 }
 
 @Composable
-private fun NumberField(
-    modifier: Modifier = Modifier,
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-) {
-    EditorTextField(
+private fun CellField(value: String, label: String, modifier: Modifier, onValueChange: (String) -> Unit) {
+    EditorField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
         label = label,
         keyboardType = KeyboardType.Number,
+        modifier = modifier,
     )
 }
 
 @Composable
-private fun EmptySectionText(text: String) {
+private fun EmptyLine(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(vertical = LatebrisSpacing.sm),
     )
 }

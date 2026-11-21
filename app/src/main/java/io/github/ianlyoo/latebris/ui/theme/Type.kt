@@ -2,72 +2,43 @@ package io.github.ianlyoo.latebris.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import io.github.ianlyoo.latebris.R
+
+/** Atkinson Hyperlegible: a face drawn for legibility at a distance, like signage lettering. */
+val SignFace = FontFamily(
+    Font(R.font.atkinson_regular, FontWeight.Normal),
+    Font(R.font.atkinson_bold, FontWeight.Bold),
+)
+
+/** Measured values (coordinates, frequencies, ids) keep tabular figures so live numbers do not jitter. */
+val Figures = TextStyle(
+    fontFamily = FontFamily.Default,
+    fontFeatureSettings = "tnum",
+)
+
+private fun sign(size: Int, line: Int, weight: FontWeight, tracking: Double = 0.0) = TextStyle(
+    fontFamily = SignFace,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    letterSpacing = tracking.sp,
+)
 
 val LatebrisTypography = Typography(
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.4.sp,
-    ),
-    headlineSmall = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 28.sp,
-        lineHeight = 32.sp,
-        letterSpacing = 0.6.sp,
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.3.sp,
-    ),
-    titleSmall = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
-        letterSpacing = 0.2.sp,
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.1.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp,
-    ),
-    bodySmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 18.sp,
-        letterSpacing = 0.1.sp,
-    ),
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Medium,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-        letterSpacing = 0.4.sp,
-    ),
-    labelMedium = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.3.sp,
-    ),
+    displaySmall = sign(36, 40, FontWeight.Bold, -0.5),
+    headlineMedium = sign(28, 34, FontWeight.Bold, -0.3),
+    headlineSmall = sign(24, 30, FontWeight.Bold, -0.2),
+    titleLarge = sign(22, 28, FontWeight.Bold),
+    titleMedium = sign(17, 24, FontWeight.Bold),
+    titleSmall = sign(15, 20, FontWeight.Bold),
+    bodyLarge = sign(16, 24, FontWeight.Normal),
+    bodyMedium = sign(14, 20, FontWeight.Normal),
+    bodySmall = sign(13, 18, FontWeight.Normal),
+    labelLarge = sign(15, 20, FontWeight.Bold, 0.1),
+    labelMedium = sign(13, 16, FontWeight.Bold, 0.2),
+    labelSmall = sign(12, 16, FontWeight.Bold, 0.2),
 )

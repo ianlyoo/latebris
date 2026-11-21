@@ -1,19 +1,15 @@
 package io.github.ianlyoo.latebris.ui
 
 object LatebrisTestTags {
-    const val DASHBOARD_DRAWER_OPEN = "dashboard_drawer_open"
-
     const val DASHBOARD_TAB_PRESETS = "dashboard_tab_presets"
     const val DASHBOARD_TAB_STATUS = "dashboard_tab_status"
     const val DASHBOARD_TAB_MOVE = "dashboard_tab_move"
     const val DASHBOARD_TAB_OPTIONS = "dashboard_tab_options"
-    const val DASHBOARD_TAB_HELP = "dashboard_tab_help"
 
     const val DASHBOARD_PRESETS_PANEL = "dashboard_presets_panel"
     const val DASHBOARD_STATUS_PANEL = "dashboard_status_panel"
     const val DASHBOARD_MOVE_PANEL = "dashboard_move_panel"
     const val DASHBOARD_OPTIONS_PANEL = "dashboard_options_panel"
-    const val DASHBOARD_HELP_PANEL = "dashboard_help_panel"
 
     const val CAPTURE_CURRENT_STATE_CONTROL = "capture_current_state_control"
 

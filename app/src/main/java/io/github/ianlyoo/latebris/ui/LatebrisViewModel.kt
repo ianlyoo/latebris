@@ -90,6 +90,9 @@ data class PresetUiModel(
     val latitude: Double,
     val longitude: Double,
     val altitude: Double,
+    val accuracyMeters: Float,
+    val wifiCount: Int,
+    val cellCount: Int,
 )
 
 @Immutable
@@ -919,6 +922,9 @@ private fun LocationPreset.toUiModel(): PresetUiModel = PresetUiModel(
     latitude = gps.latitude,
     longitude = gps.longitude,
     altitude = gps.altitude,
+    accuracyMeters = gps.accuracyMeters,
+    wifiCount = wifiNetworks.size,
+    cellCount = cellTowers.size,
 )
 
 private fun LocationPreset.toEditorState(): PresetEditorUiState = PresetEditorUiState(

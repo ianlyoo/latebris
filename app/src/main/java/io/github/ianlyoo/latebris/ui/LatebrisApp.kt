@@ -1,17 +1,25 @@
 package io.github.ianlyoo.latebris.ui
 
-import android.widget.Toast
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import io.github.ianlyoo.latebris.ui.theme.LatebrisTheme
 
 private enum class LatebrisRoute {
@@ -32,7 +40,8 @@ fun LatebrisApp(
 ) {
     var route by rememberSaveable { mutableStateOf(LatebrisRoute.Dashboard.name) }
     var dashboardTab by rememberSaveable { mutableStateOf(DashboardTab.Status.name) }
-    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val resolvedRoute = sanitizeLatebrisRouteName(route)
     val resolvedDashboardTab = sanitizeDashboardTabName(dashboardTab)
 
@@ -40,14 +49,15 @@ fun LatebrisApp(
         viewModel.events.collect { event ->
             when (event) {
                 is LatebrisUiEvent.ShowMessage -> {
-                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
                     viewModel.clearReplayedUiEvents()
                 }
             }
         }
     }
 
-    LatebrisTheme(darkTheme = true) {
+    LatebrisTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -88,10 +98,11 @@ fun LatebrisApp(
                             viewModel.openPresetEditor(presetId)
                             route = LatebrisRoute.PresetEditor.name
                         },
+                        snackbarHostState = snackbarHostState,
                     )
                 }
 
-                LatebrisRoute.PresetEditor -> {
+                LatebrisRoute.PresetEditor -> Box(modifier = Modifier.fillMaxSize()) {
                     PresetEditorScreen(
                         state = viewModel.presetEditorState,
                         onNavigateBack = {
@@ -121,6 +132,13 @@ fun LatebrisApp(
                                 route = LatebrisRoute.Dashboard.name
                             }
                         },
+                    )
+                    SnackbarHost(
+                        hostState = snackbarHostState,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(16.dp),
                     )
                 }
             }
