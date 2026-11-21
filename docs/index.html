@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>latebris — Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.</title>
-<meta name="description" content="Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.">
+<title>latebris — Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.</title>
+<meta name="description" content="Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.">
 <link rel="canonical" href="https://ianlyoo.github.io/latebris/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="latebris — Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.">
-<meta property="og:description" content="Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.">
+<meta property="og:title" content="latebris — Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.">
+<meta property="og:description" content="Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.">
 <meta property="og:url" content="https://ianlyoo.github.io/latebris/">
 <meta property="og:site_name" content="latebris">
 <meta property="og:image" content="https://ianlyoo.github.io/latebris/assets/social-preview.png">
@@ -17,20 +17,20 @@
 <meta property="og:image:type" content="image/png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ianlyoo.github.io/latebris/assets/social-preview.png">
-<meta name="twitter:title" content="latebris — Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.">
-<meta name="twitter:description" content="Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.">
+<meta name="twitter:title" content="latebris — Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.">
+<meta name="twitter:description" content="Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.">
 <meta name="twitter:url" content="https://ianlyoo.github.io/latebris/">
 <meta name="author" content="ianlyoo">
 <meta name="robots" content="index, follow">
 <link rel="stylesheet" href="./styles.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"latebris","description":"Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.","codeRepository":"https://github.com/ianlyoo/latebris","url":"https://ianlyoo.github.io/latebris/","programmingLanguage":"Kotlin","license":"https://spdx.org/licenses/MIT","keywords":["android","kotlin","location-testing","security-research","android-testing","developer-tools","geolocation","gps-simulation","location-spoofing","mobile","research-tool","wifi-simulation"],"author":{"@type":"Person","name":"ianlyoo"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"latebris","description":"Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.","codeRepository":"https://github.com/ianlyoo/latebris","url":"https://ianlyoo.github.io/latebris/","programmingLanguage":"Kotlin","license":"https://spdx.org/licenses/MIT","keywords":["android","android-testing","gps-simulation","kotlin","location-spoofing","location-testing","lsposed-module","mock-location","wifi-simulation","xposed-module"],"author":{"@type":"Person","name":"ianlyoo"}}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header role="banner">
 <div class="container">
 <h1>latebris</h1>
-<p class="tagline">Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.</p>
+<p class="tagline">Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own.</p>
 <nav aria-label="Primary">
 <ul>
 <li><a href="https://github.com/ianlyoo/latebris">GitHub Repository</a></li>
@@ -51,19 +51,42 @@
 <div class="container">
 <section aria-labelledby="overview-heading">
 <h2 id="overview-heading">Overview</h2>
-<p>Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.</p>
-<p>Repository: <a href="https://github.com/ianlyoo/latebris">https://github.com/ianlyoo/latebris</a> — Pages: <a href="https://ianlyoo.github.io/latebris/">https://ianlyoo.github.io/latebris/</a> — Language: Kotlin — License: <a href="https://spdx.org/licenses/MIT">MIT</a></p>
-<p><a href="https://github.com/ianlyoo/latebris/blob/main/README.md">README (English)</a> — <a href="https://github.com/ianlyoo/latebris/blob/main/README.ko.md">README (한국어)</a></p>
+<p>A preset bundles a GPS position, the Wi-Fi access points a scan returns and the LTE cells the phone reports. Press Start and Latebris serves the preset in one of two ways.</p>
+<table>
+<thead><tr><th scope="col"></th><th scope="col">Stock path</th><th scope="col">Hook path</th></tr></thead>
+<tbody>
+<tr><th scope="row">Device</th><td>Android 12+; Latebris is the mock location app</td><td>Rooted with Magisk, Zygisk and LSPosed; the target app is in the module's scope</td></tr>
+<tr><th scope="row">GPS</th><td>Preset position, marked as mock</td><td>Preset position, not marked as mock</td></tr>
+<tr><th scope="row">Wi-Fi scan</th><td>Real</td><td>Preset access points</td></tr>
+<tr><th scope="row">Cells</th><td>Real</td><td>Preset LTE cells</td></tr>
+<tr><th scope="row">Verified on</th><td>Android 15 emulator</td><td>Android 14 emulator, Magisk 26.4, LSPosed 1.9.2</td></tr>
+</tbody>
+</table>
 </section>
-<section aria-labelledby="features-heading"><h2 id="features-heading">Features</h2><ul><li><strong>GPS simulation:</strong> Mock location provider</li><li><strong>Wi-Fi and cell simulation:</strong> Emulate signal conditions</li><li><strong>Xposed integration:</strong> System-level spoofing</li><li><strong>Kotlin + Gradle:</strong> Modern Android stack</li></ul></section><section aria-labelledby="quickstart-heading"><h2 id="quickstart-heading">Quick start</h2><pre><code>git clone https://github.com/ianlyoo/latebris.git
-cd latebris
-./gradlew build</code></pre><p>See How_to_setup_stock_android.md and How_to_use.md</p></section>
+<section aria-labelledby="measured-heading">
+<h2 id="measured-heading">What a probe app read</h2>
+<p>Hook path, "Urban core" preset running, one probe inside the LSPosed scope and one outside it:</p>
+<table>
+<thead><tr><th scope="col">Reading</th><th scope="col">In scope</th><th scope="col">Outside scope</th></tr></thead>
+<tbody>
+<tr><th scope="row">GPS</th><td>37.5665, 126.9780 · mock false</td><td>37.5665, 126.9780 · mock true</td></tr>
+<tr><th scope="row">Wi-Fi scan</th><td>qa-lab-a, qa-lab-b</td><td>AndroidWifi (the emulator's own)</td></tr>
+<tr><th scope="row">Serving cell</th><td>LTE 450/05, CI 22011</td><td>LTE 310/260, CI 47108 (the emulator's own)</td></tr>
+</tbody>
+</table>
+<p>After Stop both probes read the real position and signals again. Full steps, including what happens when Latebris is killed mid-run, are in <a href="https://github.com/ianlyoo/latebris/blob/main/docs/VERIFICATION.md">VERIFICATION.md</a>; what is not covered and how a defender can detect Latebris is in <a href="https://github.com/ianlyoo/latebris/blob/main/docs/LIMITATIONS.md">LIMITATIONS.md</a>.</p>
+</section>
+<section aria-labelledby="install-heading">
+<h2 id="install-heading">Install</h2>
+<p>Download <code>latebris-0.2.0.apk</code> from <a href="https://github.com/ianlyoo/latebris/releases">Releases</a>. Uninstall any 0.1.x build first: the package name changed to <code>io.github.ianlyoo.latebris</code>. Setup steps for both paths are in the <a href="https://github.com/ianlyoo/latebris/blob/main/README.md">README</a> (<a href="https://github.com/ianlyoo/latebris/blob/main/README.ko.md">한국어</a>).</p>
+<p>Use Latebris only on devices you own and apps you are allowed to test.</p>
+</section>
 <section aria-labelledby="links-heading">
 <h2 id="links-heading">Project links</h2>
 <ul>
 <li><a href="https://github.com/ianlyoo/latebris">Repository: https://github.com/ianlyoo/latebris</a></li>
+<li><a href="https://github.com/ianlyoo/latebris/releases">Releases</a></li>
 <li><a href="https://github.com/ianlyoo/latebris/issues">Issues</a></li>
-<li><a href="https://ianlyoo.github.io/latebris/">Pages canonical: https://ianlyoo.github.io/latebris/</a></li>
 <li><a href="https://github.com/ianlyoo/latebris/blob/main/LICENSE">License: MIT</a></li>
 <li><a href="https://github.com/ianlyoo/latebris/blob/main/README.md">English README</a> | <a href="https://github.com/ianlyoo/latebris/blob/main/README.ko.md">한국어 README</a></li>
 <li><a href="https://ianlyoo.github.io/latebris/sitemap.xml">Sitemap</a> — <a href="https://ianlyoo.github.io/latebris/robots.txt">robots.txt</a></li>

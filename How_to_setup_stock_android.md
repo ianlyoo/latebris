@@ -222,12 +222,13 @@ Wi-Fi / Cell까지 테스트하려면 보통 아래가 필요합니다.
 1. LSPosed에서 Latebris 모듈 상세 화면 열기
 2. Scope 또는 적용 대상 앱 목록으로 이동
 3. **실제로 테스트할 앱**을 선택
-4. 필요하면 앱 강제 종료 후 다시 실행
+4. 기기 재부팅
 
 예를 들어:
 
-- 테스트하려는 대상 앱이 `com.company.app`이면
-- LSPosed scope에 `com.company.app`을 추가해야 합니다.
+- 테스트하려는 대상 앱이 `com.example.app`이면
+- LSPosed scope에 `com.example.app`을 추가해야 합니다.
+- scope를 바꾼 뒤에는 기기를 재부팅하세요. LSPosed 1.9.2에서는 재부팅해야 적용됐습니다.
 
 Latebris 앱만 설치되어 있고 테스트 대상 앱이 scope에 없으면, 보통 아래 현상이 나타납니다.
 

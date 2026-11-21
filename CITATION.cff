@@ -11,17 +11,15 @@ license: MIT
 repository-code: "https://github.com/ianlyoo/latebris"
 url: "https://ianlyoo.github.io/latebris/"
 homepage: "https://ianlyoo.github.io/latebris/"
-description: "Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing."
+description: "Plays back a saved GPS position, Wi-Fi scan and LTE cell list on Android, for testing location-dependent features on devices you own."
 keywords:
   - android
   - android-testing
-  - developer-tools
-  - geolocation
   - gps-simulation
   - kotlin
   - location-spoofing
   - location-testing
-  - mobile
-  - research-tool
-  - security-research
+  - lsposed-module
+  - mock-location
   - wifi-simulation
+  - xposed-module

@@ -1,73 +1,106 @@
-# latebris
+# Latebris
 
-Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.
+Latebris is an Android app that plays back a saved location environment: a GPS
+position, the Wi-Fi networks a scan returns, and the LTE cells the phone reports.
+Use it to test location-dependent features on devices and apps you own or are
+allowed to test.
 
-[한국어](README.ko.md) · [![CI](https://github.com/ianlyoo/latebris/actions/workflows/ci.yml/badge.svg)](https://github.com/ianlyoo/latebris/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/ianlyoo/latebris)](https://github.com/ianlyoo/latebris/releases) [![Pages](https://img.shields.io/badge/Pages-live-brightgreen)](https://ianlyoo.github.io/latebris/)
+[한국어](README.ko.md) · [Releases](https://github.com/ianlyoo/latebris/releases) · [Verification](docs/VERIFICATION.md) · [Limitations](docs/LIMITATIONS.md) · MIT licence
 
-> **Social preview:** `https://ianlyoo.github.io/latebris/assets/social-preview.png` (1280×640) — see `docs/OWNER_ACTIONS.md` for manual GitHub Settings upload.
+## What it does
 
-## Quick start — Android Kotlin app for location-testing
+A preset bundles a position, a list of Wi-Fi access points and a list of LTE
+cells. Press Start and Latebris serves that preset in one of two ways.
 
-latebris is a Kotlin Android app that simulates GPS, Wi-Fi, and cell signals together for security research.
+| | Stock path | Hook path |
+|---|---|---|
+| Device | Any Android 12+ device; Latebris is the mock location app in Developer options | Rooted with Magisk, Zygisk and LSPosed; the Latebris module is enabled and the target app is in its scope |
+| GPS | `LocationManager` and fused location return the preset position, marked as mock | Apps in scope get the preset position, not marked as mock |
+| Wi-Fi | Real | Apps in scope: `WifiManager.getScanResults()` returns the preset networks |
+| Cell | Real | Apps in scope: `getAllCellInfo()` and `requestCellInfoUpdate()` return the preset LTE cells |
+| Verified on | Android 15 emulator (API 35) | Android 14 emulator (API 34), Magisk 26.4, LSPosed 1.9.2 |
 
-### Install from tarball
+Apps outside the LSPosed scope keep seeing the real Wi-Fi and cell data, and
+see GPS the stock way.
+
+Measured on the hook path with the separate probe app, once inside the scope and
+once outside it, while the "Urban core" preset ran (full table and files in
+[docs/VERIFICATION.md](docs/VERIFICATION.md)):
+
+| Reading | Probe in scope | Probe outside scope |
+|---|---|---|
+| GPS (`getCurrentLocation`, fused) | 37.5665, 126.9780 · mock = false | 37.5665, 126.9780 · mock = true |
+| Wi-Fi scan | `qa-lab-a`, `qa-lab-b` (preset) | `AndroidWifi` (the emulator's own access point) |
+| Serving cell | LTE 450/05, CI 22011, PCI 101, TAC 101 (preset) | LTE 310/260, CI 47108 (the emulator's own cell) |
+
+After Stop, both probes read the real position again (48.8584, 2.2945) and the
+emulator's own Wi-Fi and cell.
+
+Also in the app:
+
+- **Move** plays a route from the current position to a saved destination at a
+  set speed. Without an OpenRouteService key it moves in a straight line, which
+  was checked on the API 35 emulator: 246 m in 18 s at a 50 km/h setting
+  (13.7 m/s against 13.9). With a key it asks for a road route; that request is
+  covered by unit tests only.
+- **Capture** saves the device's current position, Wi-Fi scan and cells as a
+  preset. Not checked on an emulator.
+- **Auto Fill** looks up nearby cells for a preset from OpenCellID. Unit tests
+  only.
+
+## Install
+
+Download `latebris-0.2.0.apk` from [Releases](https://github.com/ianlyoo/latebris/releases).
+
+**Uninstall any 0.1.x build first.** 0.2.0 changes the package name from
+`com.example.gpstick` to `io.github.ianlyoo.latebris`, so an old build would stay
+installed next to it and act on the same signals.
+
+Stock path:
+
+1. Install the APK and allow location and notifications.
+2. Developer options → Select mock location app → Latebris.
+3. Pick a preset and press Start. Stop returns the device to its real position.
+
+Hook path, in addition:
+
+1. Enable the Latebris module in LSPosed and add the app you are testing to its scope.
+2. Reboot. LSPosed 1.9.2 applied a scope change only after a reboot in our tests.
+3. The Status screen shows "LSPosed module: Active" once the module is loaded.
+
+Route playback and Auto Fill need your own OpenRouteService and OpenCellID keys.
+Enter them under Options; they stay on the device.
+
+## Build from source
+
+Needs JDK 17 and the Android SDK (platform 35).
 
 ```bash
-gh release download v0.1.2 --repo ianlyoo/latebris --pattern "latebris-*.tgz" --dir /tmp
-npm install /tmp/latebris-0.1.2.tgz
+./gradlew assembleDebug testDebugUnitTest
+# Instrumented tests build hidden-API objects through reflection:
+adb shell settings put global hidden_api_policy 1
+./gradlew connectedDebugAndroidTest
 ```
 
-### Build from source
+Optional build-time keys: the Gradle properties or environment variables
+`OPEN_ROUTE_SERVICE_API_KEY` and `OPEN_CELL_ID_API_KEY`. Release signing reads
+`ANDROID_SIGNING_STORE_FILE`, `ANDROID_SIGNING_STORE_PASSWORD`,
+`ANDROID_SIGNING_KEY_ALIAS` and `ANDROID_SIGNING_KEY_PASSWORD`.
 
-```bash
-git clone https://github.com/ianlyoo/latebris.git
-cd latebris
-bun install --frozen-lockfile
-bun run build
-./gradlew :app:assembleDebug
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
+The `probe` module builds the probe app in two flavours, `scoped` and `unscoped`,
+and `tools/verify-emulator.sh` runs the whole check on an emulator. See
+[docs/VERIFICATION.md](docs/VERIFICATION.md).
 
-Enable developer options → mock location app → latebris for GPS. Wi-Fi and cell simulation require a rooted device with LSPosed and the target app added to the module scope.
+## Limitations and responsible use
 
-## Use cases for geolocation and gps-simulation
+[docs/LIMITATIONS.md](docs/LIMITATIONS.md) lists what is not covered (5G NR cells,
+the connected Wi-Fi network, GNSS satellite status, real phones, other Android
+and LSPosed versions) and how a defender can detect Latebris. In short: the stock
+path marks every location as mock, and the hook path needs root and LSPosed,
+which apps can detect.
 
-- Test location-dependent features with geolocation presets that bundle GPS, Wi-Fi scan results, and cell tower data.
-- Reproduce customer-reported location issues via gps-simulation without moving the device.
-- Validate security research hypotheses by controlling the three signals that apps cross-check.
+Use Latebris only on devices you own and apps you are allowed to test.
 
-All simulation is scoped to the LSPosed target process; apps outside the scope see real Wi-Fi and cell data.
+## Licence
 
-## Architecture: Android location pipeline
-
-```mermaid
-flowchart LR
-    A[Latebris Compose UI] --> B[Preset GPS+WiFi+Cell]
-    B --> C[SimulationCoordinator]
-    C -- "mock location system-wide" --> D[GPS]
-    C -- "Xposed/LSPosed per-scope hooking" --> E[Wi-Fi scan]
-    C -- "Xposed/LSPosed per-scope hooking" --> F[Cell Tower]
-    D --> G[Target app]
-    E --> G
-    F --> G
-```
-
-GPS uses the OS mock location path; Wi-Fi (`WifiManager.getScanResults`) and Cell (`TelephonyManager.getAllCellInfo`) are hooked inside the target process, so the device itself is not globally spoofed.
-
-## Benchmark: measured Android simulation latency
-
-Measured on 2026-08-18 (seed 42, one run per condition, Pixel 7 Android 14, LSPosed 1.9). Preset apply median 85 ms, Wi-Fi scan hook 22 ms, Cell info hook 18 ms, route playback step 45 ms. No network; OpenCellID and OpenRouteService calls excluded.
-
-**Limitations:** synthetic lab device, single run, hook latency varies with Android version and LSPosed scope size, and radio behavior differs across vendors. Results are on-device measured timings and not a claim about bypassing any app's verification. Location testing should be performed only on devices and apps you own or have permission to test.
-
-## Security-research and location-spoofing notes
-
-This is a research-tool for security-research and QA. Location-spoofing must be limited to your own devices and authorized test targets. The mobile workflow is: capture real state → edit preset → enable simulation → verify via LocationProbe that the target sees the intended values.
-
-## Developer-tools and wifi-simulation setup
-
-The project uses Kotlin with Jetpack Compose and developer-tools including Gradle and `kotlin` lint. Wifi-simulation and research-tool helpers include OpenCellID auto-fill and OpenRouteService route playback. Verify with `./gradlew test` for `androidTesting` and `research-tool` suites.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
