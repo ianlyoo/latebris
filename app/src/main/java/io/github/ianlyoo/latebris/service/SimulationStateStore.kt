@@ -391,14 +391,14 @@ class SimulationStateStore private constructor(context: Context) {
                 progress = preferences.getFloat(KEY_MOVEMENT_PROGRESS, 0f).toDouble(),
                 etaEpochMillis = preferences.getLong(KEY_MOVEMENT_ETA_EPOCH_MILLIS, 0L),
                 currentLatitude = preferences.takeIf { it.contains(KEY_MOVEMENT_CURRENT_LATITUDE) }
-                    ?.getFloat(KEY_MOVEMENT_CURRENT_LATITUDE, 0f)
-                    ?.toDouble(),
+                    ?.getLong(KEY_MOVEMENT_CURRENT_LATITUDE, 0L)
+                    ?.let(Double::fromBits),
                 currentLongitude = preferences.takeIf { it.contains(KEY_MOVEMENT_CURRENT_LONGITUDE) }
-                    ?.getFloat(KEY_MOVEMENT_CURRENT_LONGITUDE, 0f)
-                    ?.toDouble(),
+                    ?.getLong(KEY_MOVEMENT_CURRENT_LONGITUDE, 0L)
+                    ?.let(Double::fromBits),
                 currentAltitude = preferences.takeIf { it.contains(KEY_MOVEMENT_CURRENT_ALTITUDE) }
-                    ?.getFloat(KEY_MOVEMENT_CURRENT_ALTITUDE, 0f)
-                    ?.toDouble(),
+                    ?.getLong(KEY_MOVEMENT_CURRENT_ALTITUDE, 0L)
+                    ?.let(Double::fromBits),
             ),
         )
     }
@@ -414,17 +414,17 @@ class SimulationStateStore private constructor(context: Context) {
             .putLong(KEY_MOVEMENT_ETA_EPOCH_MILLIS, session.etaEpochMillis)
 
         if (session.currentLatitude != null) {
-            editor.putFloat(KEY_MOVEMENT_CURRENT_LATITUDE, session.currentLatitude.toFloat())
+            editor.putLong(KEY_MOVEMENT_CURRENT_LATITUDE, session.currentLatitude.toRawBits())
         } else {
             editor.remove(KEY_MOVEMENT_CURRENT_LATITUDE)
         }
         if (session.currentLongitude != null) {
-            editor.putFloat(KEY_MOVEMENT_CURRENT_LONGITUDE, session.currentLongitude.toFloat())
+            editor.putLong(KEY_MOVEMENT_CURRENT_LONGITUDE, session.currentLongitude.toRawBits())
         } else {
             editor.remove(KEY_MOVEMENT_CURRENT_LONGITUDE)
         }
         if (session.currentAltitude != null) {
-            editor.putFloat(KEY_MOVEMENT_CURRENT_ALTITUDE, session.currentAltitude.toFloat())
+            editor.putLong(KEY_MOVEMENT_CURRENT_ALTITUDE, session.currentAltitude.toRawBits())
         } else {
             editor.remove(KEY_MOVEMENT_CURRENT_ALTITUDE)
         }
@@ -460,9 +460,10 @@ class SimulationStateStore private constructor(context: Context) {
         const val KEY_MOVEMENT_SPEED_METERS_PER_SECOND = "movement_speed_meters_per_second"
         const val KEY_MOVEMENT_PROGRESS = "movement_progress"
         const val KEY_MOVEMENT_ETA_EPOCH_MILLIS = "movement_eta_epoch_millis"
-        const val KEY_MOVEMENT_CURRENT_LATITUDE = "movement_current_latitude"
-        const val KEY_MOVEMENT_CURRENT_LONGITUDE = "movement_current_longitude"
-        const val KEY_MOVEMENT_CURRENT_ALTITUDE = "movement_current_altitude"
+        // Stored as the raw bits of a Double; a Float loses about 1 m at these magnitudes.
+        const val KEY_MOVEMENT_CURRENT_LATITUDE = "movement_current_latitude_bits"
+        const val KEY_MOVEMENT_CURRENT_LONGITUDE = "movement_current_longitude_bits"
+        const val KEY_MOVEMENT_CURRENT_ALTITUDE = "movement_current_altitude_bits"
         const val SESSION_HEARTBEAT_TIMEOUT_MILLIS = 10_000L
 
         val STATE_KEY_SET = setOf(

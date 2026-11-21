@@ -76,6 +76,33 @@ class SimulationStateStoreTest {
         assertTrue(snapshot.activeMovementSimulationEnabled)
     }
 
+    @Test
+    fun movementPositionKeepsDoublePrecision() {
+        val store = prepareStore()
+        store.setSimulationActive(activePresetId = "preset-1", sessionId = "session-1")
+        store.setMovementRouting(
+            originPresetId = "preset-1",
+            destinationPresetId = "preset-2",
+            transportMode = MovementTransportMode.Walk,
+            speedMetersPerSecond = 1.4,
+            currentLatitude = 37.566512345678,
+            currentLongitude = 126.978012345678,
+            currentAltitude = 38.123456,
+        )
+        store.updateMovementProgress(
+            progress = 0.5,
+            etaEpochMillis = 0L,
+            currentLatitude = 37.566598765432,
+            currentLongitude = 126.978098765432,
+            currentAltitude = 39.654321,
+        )
+
+        val movement = store.load().movementSession
+        assertEquals(37.566598765432, movement.currentLatitude!!, 0.0)
+        assertEquals(126.978098765432, movement.currentLongitude!!, 0.0)
+        assertEquals(39.654321, movement.currentAltitude!!, 0.0)
+    }
+
     private fun prepareStore(): SimulationStateStore {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val preferences = context.getSharedPreferences(

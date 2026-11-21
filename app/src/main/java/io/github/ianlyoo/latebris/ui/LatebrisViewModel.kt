@@ -67,7 +67,7 @@ enum class MoveTransportOption(
     ),
     Transit(
         label = "Metro",
-        detail = "Public line cadence",
+        detail = "Road route, metro speed",
         runtimeMode = MovementTransportMode.Transit,
         minSpeedMetersPerSecond = 3.0f,
         maxSpeedMetersPerSecond = 22.0f,
