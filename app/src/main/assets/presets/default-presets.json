@@ -2,7 +2,7 @@
   {
     "id": "urban-core",
     "name": "Urban core",
-    "summary": "Dense city route with mixed GPS drift and handoff churn.",
+    "summary": "Seoul City Hall area, two access points and one cell.",
     "gps": {
       "latitude": 37.5665,
       "longitude": 126.978,
@@ -37,7 +37,7 @@
   {
     "id": "suburban-loop",
     "name": "Suburban loop",
-    "summary": "Steady driving profile with moderate speed and stable coverage.",
+    "summary": "Pangyo, Seongnam, one access point and one cell.",
     "gps": {
       "latitude": 37.3943,
       "longitude": 127.1112,
@@ -66,7 +66,7 @@
   {
     "id": "rural-dropout",
     "name": "Rural dropout",
-    "summary": "Sparse coverage path to validate recovery after signal gaps.",
+    "summary": "Daejeon, no Wi-Fi and one cell: for an app that has only cell data.",
     "gps": {
       "latitude": 36.3504,
       "longitude": 127.3845,
