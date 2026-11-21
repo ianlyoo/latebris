@@ -1,6 +1,7 @@
 package io.github.ianlyoo.latebris.ui
 
 import android.content.Context
+import io.github.ianlyoo.latebris.core.gps.GpsMockRunner
 import io.github.ianlyoo.latebris.data.preset.DeviceStateCaptureRepository
 import io.github.ianlyoo.latebris.data.preset.FilePresetRepository
 import io.github.ianlyoo.latebris.data.preset.PresetRepository
@@ -23,6 +24,11 @@ class AppContainer(context: Context) {
         AndroidForegroundServiceController(appContext)
 
     fun resetStaleSimulationState() {
-        simulationStateStore.invalidateStaleRunningState()
+        val state = simulationStateStore.invalidateStaleRunningState()
+        // A process that died while simulating (crash, force-stop) leaves its test providers
+        // registered, and Android keeps serving their last fake fix until they are removed.
+        if (!state.isRunning) {
+            GpsMockRunner(appContext).stop()
+        }
     }
 }
