@@ -40,8 +40,8 @@ android {
         applicationId = "io.github.ianlyoo.latebris"
         minSdk = 31
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.2.0"
         buildConfigField("String", "OPEN_CELL_ID_API_KEY", "\"$escapedOpenCellIdApiKey\"")
         buildConfigField("String", "OPEN_ROUTE_SERVICE_API_KEY", "\"$escapedOpenRouteServiceApiKey\"")
 

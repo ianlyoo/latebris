@@ -2,7 +2,7 @@
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "name": "latebris",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Android location spoofing research tool — simulate GPS, Wi-Fi and cell-signal conditions for security research and location testing.",
   "codeRepository": "https://github.com/ianlyoo/latebris",
   "url": "https://ianlyoo.github.io/latebris/",
