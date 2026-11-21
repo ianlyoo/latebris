@@ -1,6 +1,7 @@
 package io.github.ianlyoo.latebris.data.preset
 
 import android.content.Context
+import io.github.ianlyoo.latebris.data.ApiKeyStore
 import com.google.gson.GsonBuilder
 import java.io.File
 
@@ -12,11 +13,12 @@ object PresetManager {
     private val store = JsonPresetStore(
         gson = GsonBuilder().setPrettyPrinting().create(),
     )
-    private val cellDataClient = OpenCellIdClient()
+    private lateinit var cellDataClient: OpenCellIdClient
 
     @Synchronized
     fun initialize(context: Context) {
         appContext = context.applicationContext
+        cellDataClient = OpenCellIdClient(apiKey = ApiKeyStore(appContext)::cellKey)
         ensureStorageFile()
     }
 

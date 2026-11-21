@@ -1,6 +1,5 @@
 package io.github.ianlyoo.latebris.service.routing
 
-import io.github.ianlyoo.latebris.BuildConfig
 import io.github.ianlyoo.latebris.core.network.JsonHttpClient
 import io.github.ianlyoo.latebris.service.MovementTransportMode
 import com.google.gson.Gson
@@ -24,11 +23,9 @@ class OpenRouteServiceClient internal constructor(
     private val apiKey: () -> String,
     private val distanceBetween: (RoutePoint, RoutePoint) -> Double,
 ) {
-    constructor() : this(Gson())
-
-    constructor(gson: Gson = Gson()) : this(
-        http = JsonHttpClient(gson),
-        apiKey = { BuildConfig.OPEN_ROUTE_SERVICE_API_KEY },
+    constructor(apiKey: () -> String) : this(
+        http = JsonHttpClient(Gson()),
+        apiKey = apiKey,
         distanceBetween = { origin, destination ->
             val result = FloatArray(1)
             android.location.Location.distanceBetween(

@@ -9,8 +9,9 @@ import org.junit.Test
 
 class OpenRouteServiceClientTest {
     @Test
-    fun retainsPublicNoArgumentConstructorForJvmCallers() {
-        assertNotNull(OpenRouteServiceClient::class.java.getConstructor().newInstance())
+    fun publicConstructorTakesTheKeyFromTheCaller() {
+        // No built-in key: the app passes ApiKeyStore::routeKey.
+        assertNotNull(OpenRouteServiceClient { "" })
     }
 
     private fun fetch(client: OpenRouteServiceClient, mode: MovementTransportMode = MovementTransportMode.Walk) =
@@ -22,6 +23,8 @@ class OpenRouteServiceClientTest {
     @Test
     fun unsuccessfulAndUnusableResponsesReturnFallbackAndDisconnect() {
         val responses = listOf(
+            StubHttpURLConnection(status = 401),
+            StubHttpURLConnection(status = 403),
             StubHttpURLConnection(status = 503),
             StubHttpURLConnection(body = """{"features":[]}"""),
             StubHttpURLConnection(body = """{"features":[{"geometry":{"coordinates":[[127,37]]}}]}"""),

@@ -47,6 +47,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import io.github.ianlyoo.latebris.data.ApiKeyStore
 import io.github.ianlyoo.latebris.hook.ModuleStatus
 import io.github.ianlyoo.latebris.service.MovementPhase
 import io.github.ianlyoo.latebris.service.MovementTransportMode
@@ -372,6 +376,8 @@ private fun MovePanel(
     onCancelMovement: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val hasRouteKey = remember(context) { ApiKeyStore(context).routeKey().isNotBlank() }
     ConsolePanelCard(
         modifier = modifier.verticalScroll(rememberScrollState()),
         containerColor = MaterialTheme.colorScheme.surface,
@@ -382,7 +388,8 @@ private fun MovePanel(
             description = if (state.showsMoveProgress) {
                 "Track the active route in real time, monitor ETA, and stop playback before arrival if needed."
             } else {
-                "Pick a saved destination and launch route playback. If no simulation is running yet, Move captures the current device location and starts one automatically."
+                "Pick a saved destination and launch route playback. If no simulation is running yet, Move captures the current device location and starts one automatically." +
+                    if (hasRouteKey) "" else " No OpenRouteService key is set (Options), so the route is a straight line."
             },
             trailing = {
                 ConsoleBadge(
@@ -1268,7 +1275,7 @@ private fun ControlPanel(
     }
 
     ConsolePanelCard(
-        modifier = modifier,
+        modifier = modifier.verticalScroll(rememberScrollState()),
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         ConsoleSectionHeader(
@@ -1334,6 +1341,47 @@ private fun ControlPanel(
                 }
             }
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        ApiKeysSection()
+    }
+}
+
+/** Optional keys for the two web services; see [ApiKeyStore]. */
+@Composable
+private fun ApiKeysSection() {
+    val context = LocalContext.current
+    val keyStore = remember(context) { ApiKeyStore(context) }
+    var routeKey by remember { mutableStateOf(keyStore.enteredRouteKey()) }
+    var cellKey by remember { mutableStateOf(keyStore.enteredCellKey()) }
+    var saved by remember { mutableStateOf(false) }
+
+    ConsoleSectionHeader(
+        eyebrow = "Optional keys",
+        title = "Web services",
+        description = "Movement asks OpenRouteService for a road route; without a key it moves in a straight line between the two presets. " +
+            "OpenCellID fills nearby cell towers when you create a preset; without a key that step is skipped. Keys stay on this device.",
+    )
+    OutlinedTextField(
+        value = routeKey,
+        onValueChange = { routeKey = it; saved = false },
+        label = { Text("OpenRouteService key") },
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = cellKey,
+        onValueChange = { cellKey = it; saved = false },
+        label = { Text("OpenCellID key") },
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    FilledTonalButton(
+        onClick = { keyStore.save(routeKey, cellKey); saved = true },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(if (saved) "Saved" else "Save keys")
     }
 }
 

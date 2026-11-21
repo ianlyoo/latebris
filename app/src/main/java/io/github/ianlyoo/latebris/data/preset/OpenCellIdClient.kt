@@ -1,6 +1,5 @@
 package io.github.ianlyoo.latebris.data.preset
 
-import io.github.ianlyoo.latebris.BuildConfig
 import io.github.ianlyoo.latebris.core.network.JsonHttpClient
 import com.google.gson.annotations.SerializedName
 import java.net.URL
@@ -10,7 +9,7 @@ import kotlin.math.max
 
 internal class OpenCellIdClient(
     private val http: JsonHttpClient = JsonHttpClient(),
-    private val apiKey: () -> String = { BuildConfig.OPEN_CELL_ID_API_KEY },
+    private val apiKey: () -> String,
 ) {
     fun autoFill(preset: LocationPreset): LocationPreset {
         val key = apiKey().takeIf { it.isNotBlank() } ?: return preset

@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import io.github.ianlyoo.latebris.core.gps.GpsMockRunner
+import io.github.ianlyoo.latebris.data.ApiKeyStore
 import io.github.ianlyoo.latebris.core.gps.MovementProgressSnapshot
 import io.github.ianlyoo.latebris.core.gps.MovementRouteSpec
 import io.github.ianlyoo.latebris.data.preset.FilePresetRepository
@@ -41,7 +42,7 @@ class SimulatorControlService : Service() {
         stateStore = SimulationStateStore.getInstance(this)
         notificationFactory = SimulationNotificationFactory(this)
         presetRepository = FilePresetRepository(this)
-        routeClient = OpenRouteServiceClient()
+        routeClient = OpenRouteServiceClient(ApiKeyStore(this)::routeKey)
         gpsMockRunner = GpsMockRunner(
             context = this,
             onRuntimeFailure = {
