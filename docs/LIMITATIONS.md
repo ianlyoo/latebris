@@ -63,7 +63,7 @@ On the hook path:
   packages, and the module's state file sits in LSPosed's shared-preferences
   directory, readable by every app in its scope.
 - Hooked getters are slow. In our probe, 1000 calls to `Location.getLatitude()`
-  took 4 to 37 ms inside the scope and under 1 ms outside it.
+  took 5 to 22 ms inside the scope and under 1 ms outside it.
 - Apps outside the scope still see the stock path's mock location, so the same
   device reports a mock-flagged fix to one app and a clean one to another. A
   server that compares reports from several apps on one device can see that.

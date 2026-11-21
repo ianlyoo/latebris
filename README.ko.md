@@ -36,6 +36,8 @@ LSPosed scope 밖의 앱에는 실제 Wi-Fi와 기지국 값이 그대로 보이
 Stop을 누르면 두 프로브 모두 실제 좌표(48.8584, 2.2945)와 에뮬레이터 자체 Wi-Fi,
 기지국 값으로 돌아왔습니다.
 
+![루팅한 API 34 에뮬레이터에서 실행 중인 Latebris와, LSPosed scope 안 프로브(mock: false), scope 밖 프로브(mock: true)](docs/assets/hook-path-emulator.png)
+
 앱에는 이런 기능도 있습니다.
 
 - **Move**는 현재 위치에서 저장된 목적지까지 정한 속도로 이동합니다.

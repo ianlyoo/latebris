@@ -67,7 +67,7 @@ stayed on the last fake position because Android kept the dead app's mock
 providers. Reopening Latebris removed them (step 6; `dumpsys location` then lists
 the gps and network providers without `[mock]`).
 
-1000 `getLatitude()` calls took 4 to 37 ms in the scoped probe and under 1 ms in
+1000 `getLatitude()` calls took 5 to 22 ms in the scoped probe and under 1 ms in
 the unscoped one.
 
 The Status screen of Latebris reads "LSPosed module: Active" on this emulator and

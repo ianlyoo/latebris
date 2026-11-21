@@ -36,6 +36,8 @@ once outside it, while the "Urban core" preset ran (full table and files in
 After Stop, both probes read the real position again (48.8584, 2.2945) and the
 emulator's own Wi-Fi and cell.
 
+![Latebris running on the rooted API 34 emulator, next to the probe inside the LSPosed scope (mock: false) and the probe outside it (mock: true)](docs/assets/hook-path-emulator.png)
+
 Also in the app:
 
 - **Move** plays a route from the current position to a saved destination at a
