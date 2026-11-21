@@ -1,3 +1,1 @@
-io.github.ianlyoo.latebris.core.gps.LocationMockHook
-io.github.ianlyoo.latebris.core.wifi.WifiScanHook
-io.github.ianlyoo.latebris.core.cell.CellInfoHook
+io.github.ianlyoo.latebris.hook.ModuleEntryPoint

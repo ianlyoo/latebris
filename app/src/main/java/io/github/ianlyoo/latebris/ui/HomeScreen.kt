@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.ianlyoo.latebris.hook.ModuleStatus
 import io.github.ianlyoo.latebris.service.MovementPhase
 import io.github.ianlyoo.latebris.service.MovementTransportMode
 import io.github.ianlyoo.latebris.ui.theme.LatebrisSpacing
@@ -1076,6 +1077,10 @@ private fun PermissionStatusSection(state: LatebrisUiState) {
                 else -> "Required"
             },
             modifier = Modifier.testTag(LatebrisTestTags.NOTIFICATION_PERMISSION_STATUS),
+        )
+        LabeledValue(
+            label = "LSPosed module",
+            value = if (ModuleStatus.isActive()) "Active" else "Not active",
         )
     }
 }

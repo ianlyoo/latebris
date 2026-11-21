@@ -5,22 +5,17 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import io.github.ianlyoo.latebris.core.cell.CellHookManager
-import io.github.ianlyoo.latebris.core.gps.GpsHookManager
 import io.github.ianlyoo.latebris.core.gps.GpsMockRunner
 import io.github.ianlyoo.latebris.core.gps.MovementProgressSnapshot
 import io.github.ianlyoo.latebris.core.gps.MovementRouteSpec
-import io.github.ianlyoo.latebris.core.wifi.WifiHookManager
 import io.github.ianlyoo.latebris.data.preset.FilePresetRepository
 import io.github.ianlyoo.latebris.data.preset.LocationPreset
-import io.github.ianlyoo.latebris.data.preset.PresetManager
 import io.github.ianlyoo.latebris.service.routing.OpenRouteServiceClient
 import io.github.ianlyoo.latebris.service.routing.RoutePoint
 import com.google.gson.Gson
 import java.util.UUID
 
 class SimulatorControlService : Service() {
-    private lateinit var simulationCoordinator: SimulationCoordinator
     private lateinit var stateStore: SimulationStateStore
     private lateinit var notificationFactory: SimulationNotificationFactory
     private lateinit var gpsMockRunner: GpsMockRunner
@@ -56,12 +51,6 @@ class SimulatorControlService : Service() {
             onMovementArrived = ::handleMovementArrived,
         )
         notificationFactory.ensureChannel()
-        simulationCoordinator = SimulationCoordinator(
-            presetRepository = presetRepository,
-            gpsHookManager = GpsHookManager(),
-            wifiHookManager = WifiHookManager(),
-            cellHookManager = CellHookManager(),
-        )
         val initialState = stateStore.load()
         runtimeOriginPresetId = initialState.activePresetId?.takeIf(::isRuntimeOriginPresetId)
         if (!initialState.isRunning) {
@@ -203,7 +192,7 @@ class SimulatorControlService : Service() {
         }
 
         val presetId = simulationState.activePresetId
-        val preset = presetId?.let(simulationCoordinator::start)
+        val preset = presetId?.let(presetRepository::getPreset)
         if (preset == null) {
             stopSimulation(
                 startId = startId,
@@ -212,7 +201,6 @@ class SimulatorControlService : Service() {
             return
         }
 
-        PresetManager.activatePreset(preset)
         if (pendingSettings.featuresEnabled && pendingSettings.isGpsMockEnabled) {
             val gpsStarted = gpsMockRunner.start(
                 preset = preset,
@@ -437,8 +425,6 @@ class SimulatorControlService : Service() {
         val destinationPresetId = currentState.movementSession.destinationPresetId ?: return
         val destinationPreset = presetRepository.getPreset(destinationPresetId) ?: return
 
-        simulationCoordinator.applyPreset(destinationPreset)
-        PresetManager.activatePreset(destinationPreset)
         stateStore.setMovementArrived(
             destinationPresetId = destinationPresetId,
             currentLatitude = snapshot.latitude,
@@ -484,8 +470,6 @@ class SimulatorControlService : Service() {
         sessionId: String,
     ) {
         explicitShutdown = false
-        simulationCoordinator.applyPreset(preset)
-        PresetManager.activatePreset(preset)
 
         if (settings.featuresEnabled && settings.isGpsMockEnabled) {
             val gpsStarted = gpsMockRunner.start(
@@ -538,8 +522,6 @@ class SimulatorControlService : Service() {
         stopHeartbeat()
         activeSessionId = null
         gpsMockRunner.stop()
-        simulationCoordinator.stop()
-        PresetManager.clearActivePreset()
         stateStore.setSimulationInactive(failureMessage = failureMessage)
         cleanupRuntimeOriginPresets()
         runtimeOriginPresetId = null

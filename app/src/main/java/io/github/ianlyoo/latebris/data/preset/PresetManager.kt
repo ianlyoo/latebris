@@ -13,25 +13,11 @@ object PresetManager {
         gson = GsonBuilder().setPrettyPrinting().create(),
     )
     private val cellDataClient = OpenCellIdClient()
-    private var activePreset: LocationPreset? = null
 
     @Synchronized
     fun initialize(context: Context) {
         appContext = context.applicationContext
         ensureStorageFile()
-    }
-
-    @Synchronized
-    fun activatePreset(preset: LocationPreset) {
-        activePreset = preset
-    }
-
-    @Synchronized
-    fun getActivePreset(): LocationPreset? = activePreset
-
-    @Synchronized
-    fun clearActivePreset() {
-        activePreset = null
     }
 
     @Synchronized
@@ -67,18 +53,12 @@ object PresetManager {
             if (current.id == preset.id) preset else current
         }
         savePresets(presets)
-        if (activePreset?.id == preset.id) {
-            activePreset = preset
-        }
         return preset
     }
 
     @Synchronized
     fun deletePreset(id: String) {
         savePresets(readPresets().filterNot { it.id == id })
-        if (activePreset?.id == id) {
-            activePreset = null
-        }
     }
 
     @Synchronized
