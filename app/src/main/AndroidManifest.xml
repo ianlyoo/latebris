@@ -33,6 +33,10 @@
         <meta-data
             android:name="xposedminversion"
             android:value="93" />
+        <!-- Lets scoped apps read the hook state through XSharedPreferences. -->
+        <meta-data
+            android:name="xposedsharedprefs"
+            android:value="true" />
 
         <activity
             android:name=".ui.MainActivity"
@@ -50,11 +54,6 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <provider
-            android:name=".service.SimulationStateProvider"
-            android:authorities="io.github.ianlyoo.latebris.simulation.state"
-            android:enabled="true"
-            android:exported="true" />
     </application>
 
 </manifest>

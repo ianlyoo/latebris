@@ -7,8 +7,7 @@ import android.telephony.TelephonyManager
 import android.telephony.gsm.GsmCellLocation
 import android.util.Log
 import io.github.ianlyoo.latebris.data.preset.CellTower
-import io.github.ianlyoo.latebris.data.preset.LocationPreset
-import io.github.ianlyoo.latebris.service.SimulationStateStore
+import io.github.ianlyoo.latebris.hook.HookStateReader
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
@@ -23,7 +22,7 @@ class CellInfoHook : IXposedHookLoadPackage {
                 "getAllCellInfo",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        val towers = resolveActivePreset()?.cellTowers.orEmpty()
+                        val towers = HookStateReader.current()?.cellTowers.orEmpty()
                         if (towers.isEmpty()) {
                             return
                         }
@@ -41,7 +40,7 @@ class CellInfoHook : IXposedHookLoadPackage {
                 "getCellLocation",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        val tower = resolveActivePreset()?.cellTowers?.firstOrNull() ?: return
+                        val tower = HookStateReader.current()?.cellTowers?.firstOrNull() ?: return
                         param.result = buildCellLocation(tower) ?: param.result
                     }
                 },
@@ -50,17 +49,6 @@ class CellInfoHook : IXposedHookLoadPackage {
         }.onFailure { throwable ->
             Log.w(TAG, "Failed to install cell hooks for ${lpparam.packageName}", throwable)
         }
-    }
-
-    private fun resolveActivePreset(): LocationPreset? {
-        val context = currentApplicationContext() ?: return null
-        val snapshot = SimulationStateStore.readSnapshotFromProvider(context)
-        val sharedState = snapshot.controlState
-        if (!sharedState.isRunning || !sharedState.activeFeaturesEnabled || !sharedState.activeCellMockEnabled) {
-            return null
-        }
-
-        return snapshot.activePreset
     }
 
     private fun buildCellInfoLte(tower: CellTower): CellInfoLte? = runCatching {
@@ -192,13 +180,6 @@ class CellInfoHook : IXposedHookLoadPackage {
             field.setBoolean(target, value)
         }
     }
-
-    private fun currentApplicationContext(): android.content.Context? = runCatching {
-        val activityThread = Class.forName("android.app.ActivityThread")
-        val method = activityThread.getDeclaredMethod("currentApplication")
-        method.isAccessible = true
-        method.invoke(null) as? android.content.Context
-    }.getOrNull()
 
     private companion object {
         const val TAG = "LatebrisCellHook"

@@ -11,7 +11,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import io.github.ianlyoo.latebris.data.preset.GpsPreset
-import io.github.ianlyoo.latebris.service.SimulationStateStore
+import io.github.ianlyoo.latebris.hook.HookStateReader
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
@@ -432,13 +432,7 @@ class LocationMockHook : IXposedHookLoadPackage {
             return null
         }
 
-        val context = currentApplicationContext() ?: return null
-        val snapshot = SimulationStateStore.readSnapshotFromProvider(context)
-        val state = snapshot.controlState
-        if (!state.isRunning || !state.activeFeaturesEnabled || !state.activeGpsMockEnabled) {
-            return null
-        }
-        return snapshot.activePreset?.gps
+        return HookStateReader.current()?.gps
     }
 
     private fun shouldOverrideProvider(provider: String?): Boolean {
@@ -448,13 +442,6 @@ class LocationMockHook : IXposedHookLoadPackage {
             normalized == LocationManager.PASSIVE_PROVIDER ||
             normalized.contains("fused")
     }
-
-    private fun currentApplicationContext(): android.content.Context? = runCatching {
-        val activityThread = Class.forName("android.app.ActivityThread")
-        val method = activityThread.getDeclaredMethod("currentApplication")
-        method.isAccessible = true
-        method.invoke(null) as? android.content.Context
-    }.getOrNull()
 
     private companion object {
         const val TAG = "LatebrisLocationHook"

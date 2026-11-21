@@ -10,5 +10,6 @@ class LatebrisApplication : Application() {
         super.onCreate()
         appContainer = AppContainer(this)
         appContainer.resetStaleSimulationState()
+        appContainer.hookStatePublisher.start()
     }
 }

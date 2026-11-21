@@ -9,6 +9,7 @@ import io.github.ianlyoo.latebris.data.preset.FilePresetRepository
 import io.github.ianlyoo.latebris.data.preset.PresetRepository
 import io.github.ianlyoo.latebris.service.AndroidForegroundServiceController
 import io.github.ianlyoo.latebris.service.ForegroundServiceController
+import io.github.ianlyoo.latebris.service.HookStatePublisher
 import io.github.ianlyoo.latebris.service.SimulationStateStore
 import io.github.ianlyoo.latebris.service.SimulationCoordinator
 
@@ -25,6 +26,9 @@ class AppContainer(context: Context) {
         wifiHookManager = WifiHookManager(),
         cellHookManager = CellHookManager(),
     )
+
+    /** Keeps the hook state file that target apps read in step with the simulation. */
+    val hookStatePublisher = HookStatePublisher(appContext, simulationStateStore, presetRepository)
 
     val foregroundServiceController: ForegroundServiceController =
         AndroidForegroundServiceController(appContext)

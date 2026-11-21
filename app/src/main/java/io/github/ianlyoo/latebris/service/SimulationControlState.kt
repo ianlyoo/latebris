@@ -1,7 +1,6 @@
 package io.github.ianlyoo.latebris.service
 
 import androidx.compose.runtime.Immutable
-import io.github.ianlyoo.latebris.data.preset.LocationPreset
 
 @Immutable
 data class SimulationFeatureSettings(
@@ -95,9 +94,3 @@ data class SimulationControlState(
     val activeMovementSimulationEnabled: Boolean
         get() = activeSettings.isMovementSimulationEnabled
 }
-
-@Immutable
-data class SimulationStateSnapshot(
-    val controlState: SimulationControlState = SimulationControlState(),
-    val activePreset: LocationPreset? = null,
-)

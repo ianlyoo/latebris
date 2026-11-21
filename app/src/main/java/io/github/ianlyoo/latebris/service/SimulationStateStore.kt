@@ -2,10 +2,6 @@ package io.github.ianlyoo.latebris.service
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.Uri
-import android.os.Bundle
-import io.github.ianlyoo.latebris.data.preset.LocationPreset
-import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -357,55 +353,6 @@ class SimulationStateStore private constructor(context: Context) {
         _state.value = load()
     }
 
-    fun asBundle(activePreset: LocationPreset? = null): Bundle = Bundle().apply {
-        val snapshot = load()
-        putBoolean(KEY_RUNNING, snapshot.isRunning)
-        putString(KEY_PRESET_ID, snapshot.activePresetId)
-        putBoolean(KEY_PENDING_FEATURES_ENABLED, snapshot.featuresEnabled)
-        putBoolean(KEY_PENDING_GPS_MOCK_ENABLED, snapshot.isGpsMockEnabled)
-        putBoolean(KEY_PENDING_WIFI_MOCK_ENABLED, snapshot.isWifiMockEnabled)
-        putBoolean(KEY_PENDING_CELL_MOCK_ENABLED, snapshot.isCellMockEnabled)
-        putBoolean(KEY_PENDING_MOVEMENT_SIMULATION_ENABLED, snapshot.isMovementSimulationEnabled)
-        putBoolean(KEY_ACTIVE_FEATURES_ENABLED, snapshot.activeFeaturesEnabled)
-        putBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, snapshot.activeGpsMockEnabled)
-        putBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, snapshot.activeWifiMockEnabled)
-        putBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, snapshot.activeCellMockEnabled)
-        putBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, snapshot.activeMovementSimulationEnabled)
-        putString(KEY_MOVEMENT_PHASE, snapshot.movementSession.phase.name)
-        putString(KEY_MOVEMENT_ORIGIN_PRESET_ID, snapshot.movementSession.originPresetId)
-        putString(KEY_MOVEMENT_DESTINATION_PRESET_ID, snapshot.movementSession.destinationPresetId)
-        putString(KEY_MOVEMENT_TRANSPORT_MODE, snapshot.movementSession.transportMode?.name)
-        putFloat(KEY_MOVEMENT_SPEED_METERS_PER_SECOND, snapshot.movementSession.speedMetersPerSecond.toFloat())
-        putFloat(KEY_MOVEMENT_PROGRESS, snapshot.movementSession.progress.toFloat())
-        putLong(KEY_MOVEMENT_ETA_EPOCH_MILLIS, snapshot.movementSession.etaEpochMillis)
-        snapshot.movementSession.currentLatitude?.let { putDouble(KEY_MOVEMENT_CURRENT_LATITUDE, it) }
-        snapshot.movementSession.currentLongitude?.let { putDouble(KEY_MOVEMENT_CURRENT_LONGITUDE, it) }
-        snapshot.movementSession.currentAltitude?.let { putDouble(KEY_MOVEMENT_CURRENT_ALTITUDE, it) }
-        putString(KEY_ACTIVE_PRESET_JSON, activePreset?.let(gson::toJson))
-    }
-
-    fun asProviderBundle(activePreset: LocationPreset? = null): Bundle = Bundle().apply {
-        val snapshot = invalidateStaleRunningState()
-        putBoolean(KEY_RUNNING, snapshot.isRunning)
-        putString(KEY_PRESET_ID, snapshot.activePresetId)
-        putBoolean(KEY_ACTIVE_FEATURES_ENABLED, snapshot.activeFeaturesEnabled)
-        putBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, snapshot.activeGpsMockEnabled)
-        putBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, snapshot.activeWifiMockEnabled)
-        putBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, snapshot.activeCellMockEnabled)
-        putBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, snapshot.activeMovementSimulationEnabled)
-        putString(KEY_MOVEMENT_PHASE, snapshot.movementSession.phase.name)
-        putString(KEY_MOVEMENT_ORIGIN_PRESET_ID, snapshot.movementSession.originPresetId)
-        putString(KEY_MOVEMENT_DESTINATION_PRESET_ID, snapshot.movementSession.destinationPresetId)
-        putString(KEY_MOVEMENT_TRANSPORT_MODE, snapshot.movementSession.transportMode?.name)
-        putFloat(KEY_MOVEMENT_SPEED_METERS_PER_SECOND, snapshot.movementSession.speedMetersPerSecond.toFloat())
-        putFloat(KEY_MOVEMENT_PROGRESS, snapshot.movementSession.progress.toFloat())
-        putLong(KEY_MOVEMENT_ETA_EPOCH_MILLIS, snapshot.movementSession.etaEpochMillis)
-        snapshot.movementSession.currentLatitude?.let { putDouble(KEY_MOVEMENT_CURRENT_LATITUDE, it) }
-        snapshot.movementSession.currentLongitude?.let { putDouble(KEY_MOVEMENT_CURRENT_LONGITUDE, it) }
-        snapshot.movementSession.currentAltitude?.let { putDouble(KEY_MOVEMENT_CURRENT_ALTITUDE, it) }
-        putString(KEY_ACTIVE_PRESET_JSON, activePreset?.let(gson::toJson))
-    }
-
     private fun readFromPreferences(): SimulationControlState {
         val pendingSettings = SimulationFeatureSettings(
             featuresEnabled = preferences.getBoolean(KEY_PENDING_FEATURES_ENABLED, true),
@@ -502,7 +449,6 @@ class SimulationStateStore private constructor(context: Context) {
         const val KEY_ACTIVE_WIFI_MOCK_ENABLED = "active_wifi_mock_enabled"
         const val KEY_ACTIVE_CELL_MOCK_ENABLED = "active_cell_mock_enabled"
         const val KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED = "active_movement_simulation_enabled"
-        const val KEY_ACTIVE_PRESET_JSON = "active_preset_json"
         const val KEY_SESSION_ID = "simulation_session_id"
         const val KEY_SESSION_HEARTBEAT_AT_MILLIS = "simulation_session_heartbeat_at_millis"
         const val KEY_LAST_FAILURE_MESSAGE = "last_failure_message"
@@ -517,10 +463,7 @@ class SimulationStateStore private constructor(context: Context) {
         const val KEY_MOVEMENT_CURRENT_LATITUDE = "movement_current_latitude"
         const val KEY_MOVEMENT_CURRENT_LONGITUDE = "movement_current_longitude"
         const val KEY_MOVEMENT_CURRENT_ALTITUDE = "movement_current_altitude"
-        const val METHOD_GET_STATE = "getSimulationState"
-        const val AUTHORITY = "io.github.ianlyoo.latebris.simulation.state"
         const val SESSION_HEARTBEAT_TIMEOUT_MILLIS = 10_000L
-        private val gson = Gson()
 
         val STATE_KEY_SET = setOf(
             KEY_RUNNING,
@@ -551,108 +494,11 @@ class SimulationStateStore private constructor(context: Context) {
             KEY_MOVEMENT_CURRENT_ALTITUDE,
         )
 
-        val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY")
-
         fun getInstance(context: Context): SimulationStateStore =
             instance ?: synchronized(this) {
                 instance ?: SimulationStateStore(context.applicationContext).also {
                     instance = it
                 }
             }
-
-        fun readFromProvider(context: Context): SimulationControlState {
-            return readSnapshotFromProvider(context).controlState
-        }
-
-        fun readSnapshotFromProvider(context: Context): SimulationStateSnapshot {
-            val bundle = runCatching {
-                context.contentResolver.call(CONTENT_URI, METHOD_GET_STATE, null, null)
-            }.getOrNull()
-
-            val controlState = decodeProviderControlState(bundle)
-            val activePreset = bundle?.getString(KEY_ACTIVE_PRESET_JSON)?.let(::decodePreset)
-            return SimulationStateSnapshot(
-                controlState = controlState,
-                activePreset = activePreset,
-            )
-        }
-
-        private fun decodeControlState(bundle: Bundle?): SimulationControlState {
-            val pendingSettings = SimulationFeatureSettings(
-                featuresEnabled = bundle?.getBoolean(KEY_PENDING_FEATURES_ENABLED, true) == true,
-                isGpsMockEnabled = bundle?.getBoolean(KEY_PENDING_GPS_MOCK_ENABLED, true) == true,
-                isWifiMockEnabled = bundle?.getBoolean(KEY_PENDING_WIFI_MOCK_ENABLED, true) == true,
-                isCellMockEnabled = bundle?.getBoolean(KEY_PENDING_CELL_MOCK_ENABLED, true) == true,
-                isMovementSimulationEnabled = bundle?.getBoolean(KEY_PENDING_MOVEMENT_SIMULATION_ENABLED, false) == true,
-            )
-
-            return SimulationControlState(
-                isRunning = bundle?.getBoolean(KEY_RUNNING, false) == true,
-                activePresetId = bundle?.getString(KEY_PRESET_ID),
-                pendingSettings = pendingSettings,
-                activeSettings = SimulationFeatureSettings(
-                    featuresEnabled = bundle?.getBoolean(KEY_ACTIVE_FEATURES_ENABLED, pendingSettings.featuresEnabled) == true,
-                    isGpsMockEnabled = bundle?.getBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, pendingSettings.isGpsMockEnabled) == true,
-                    isWifiMockEnabled = bundle?.getBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, pendingSettings.isWifiMockEnabled) == true,
-                    isCellMockEnabled = bundle?.getBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, pendingSettings.isCellMockEnabled) == true,
-                    isMovementSimulationEnabled = bundle?.getBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, pendingSettings.isMovementSimulationEnabled) == true,
-                ),
-                movementSession = decodeMovementSession(bundle),
-            )
-        }
-
-        private fun decodeProviderControlState(bundle: Bundle?): SimulationControlState {
-            val activeSettings = SimulationFeatureSettings(
-                featuresEnabled = bundle?.getBoolean(KEY_ACTIVE_FEATURES_ENABLED, false) == true,
-                isGpsMockEnabled = bundle?.getBoolean(KEY_ACTIVE_GPS_MOCK_ENABLED, false) == true,
-                isWifiMockEnabled = bundle?.getBoolean(KEY_ACTIVE_WIFI_MOCK_ENABLED, false) == true,
-                isCellMockEnabled = bundle?.getBoolean(KEY_ACTIVE_CELL_MOCK_ENABLED, false) == true,
-                isMovementSimulationEnabled = bundle?.getBoolean(KEY_ACTIVE_MOVEMENT_SIMULATION_ENABLED, false) == true,
-            )
-
-            return SimulationControlState(
-                isRunning = bundle?.getBoolean(KEY_RUNNING, false) == true,
-                activePresetId = bundle?.getString(KEY_PRESET_ID),
-                pendingSettings = activeSettings,
-                activeSettings = activeSettings,
-                movementSession = decodeMovementSession(bundle),
-            )
-        }
-
-        private fun decodeMovementSession(bundle: Bundle?): MovementSessionState {
-            val phase = bundle?.getString(KEY_MOVEMENT_PHASE)
-                ?.let(::decodeMovementPhase) ?: MovementPhase.None
-            return MovementSessionState(
-                phase = phase,
-                originPresetId = bundle?.getString(KEY_MOVEMENT_ORIGIN_PRESET_ID),
-                destinationPresetId = bundle?.getString(KEY_MOVEMENT_DESTINATION_PRESET_ID),
-                transportMode = bundle?.getString(KEY_MOVEMENT_TRANSPORT_MODE)
-                    ?.let(::decodeMovementTransportMode),
-                speedMetersPerSecond = bundle?.getFloat(KEY_MOVEMENT_SPEED_METERS_PER_SECOND, 0f)?.toDouble() ?: 0.0,
-                progress = bundle?.getFloat(KEY_MOVEMENT_PROGRESS, 0f)?.toDouble() ?: 0.0,
-                etaEpochMillis = bundle?.getLong(KEY_MOVEMENT_ETA_EPOCH_MILLIS, 0L) ?: 0L,
-                currentLatitude = bundle
-                    ?.takeIf { it.containsKey(KEY_MOVEMENT_CURRENT_LATITUDE) }
-                    ?.getDouble(KEY_MOVEMENT_CURRENT_LATITUDE),
-                currentLongitude = bundle
-                    ?.takeIf { it.containsKey(KEY_MOVEMENT_CURRENT_LONGITUDE) }
-                    ?.getDouble(KEY_MOVEMENT_CURRENT_LONGITUDE),
-                currentAltitude = bundle
-                    ?.takeIf { it.containsKey(KEY_MOVEMENT_CURRENT_ALTITUDE) }
-                    ?.getDouble(KEY_MOVEMENT_CURRENT_ALTITUDE),
-            )
-        }
-
-        private fun decodeMovementPhase(value: String): MovementPhase =
-            MovementPhase.entries.firstOrNull { it.name == value } ?: MovementPhase.None
-
-        private fun decodeMovementTransportMode(value: String): MovementTransportMode? =
-            MovementTransportMode.entries.firstOrNull { it.name == value }
-
-        private fun decodePreset(raw: String): LocationPreset? {
-            return runCatching {
-                gson.fromJson(raw, LocationPreset::class.java)
-            }.getOrNull()
-        }
     }
 }

@@ -4,9 +4,8 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.SystemClock
 import android.util.Log
-import io.github.ianlyoo.latebris.data.preset.LocationPreset
 import io.github.ianlyoo.latebris.data.preset.WifiNetwork
-import io.github.ianlyoo.latebris.service.SimulationStateStore
+import io.github.ianlyoo.latebris.hook.HookStateReader
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
@@ -20,8 +19,7 @@ class WifiScanHook : IXposedHookLoadPackage {
                 "getScanResults",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        val preset = resolveActivePreset() ?: return
-                        val wifiNetworks = preset.wifiNetworks
+                        val wifiNetworks = HookStateReader.current()?.wifiNetworks ?: return
                         param.result = ArrayList(wifiNetworks.map(::toScanResult))
                     }
                 },
@@ -30,17 +28,6 @@ class WifiScanHook : IXposedHookLoadPackage {
         }.onFailure { throwable ->
             Log.w(TAG, "Failed to install Wi-Fi scan hook for ${lpparam.packageName}", throwable)
         }
-    }
-
-    private fun resolveActivePreset(): LocationPreset? {
-        val context = currentApplicationContext() ?: return null
-        val snapshot = SimulationStateStore.readSnapshotFromProvider(context)
-        val sharedState = snapshot.controlState
-        if (!sharedState.isRunning || !sharedState.activeFeaturesEnabled || !sharedState.activeWifiMockEnabled) {
-            return null
-        }
-
-        return snapshot.activePreset
     }
 
     private fun toScanResult(network: WifiNetwork): ScanResult {
@@ -58,13 +45,6 @@ class WifiScanHook : IXposedHookLoadPackage {
         field.isAccessible = true
         field.set(target, value)
     }
-
-    private fun currentApplicationContext(): android.content.Context? = runCatching {
-        val activityThread = Class.forName("android.app.ActivityThread")
-        val method = activityThread.getDeclaredMethod("currentApplication")
-        method.isAccessible = true
-        method.invoke(null) as? android.content.Context
-    }.getOrNull()
 
     private companion object {
         const val TAG = "LatebrisWifiHook"
