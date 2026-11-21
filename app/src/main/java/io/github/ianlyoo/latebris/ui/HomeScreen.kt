@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.ianlyoo.latebris.service.MovementPhase
 import io.github.ianlyoo.latebris.service.MovementTransportMode
-import io.github.ianlyoo.latebris.ui.theme.GpStickSpacing
+import io.github.ianlyoo.latebris.ui.theme.LatebrisSpacing
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -65,7 +65,7 @@ enum class DashboardTab(val label: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    state: GpStickUiState,
+    state: LatebrisUiState,
     selectedTab: DashboardTab,
     onTabSelected: (DashboardTab) -> Unit,
     onPresetSelected: (String) -> Unit,
@@ -99,7 +99,7 @@ fun HomeScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.width(GpStickSpacing.drawerWidth),
+                modifier = Modifier.width(LatebrisSpacing.drawerWidth),
                 drawerContainerColor = MaterialTheme.colorScheme.surface,
                 drawerContentColor = MaterialTheme.colorScheme.onSurface,
             ) {
@@ -133,8 +133,8 @@ fun HomeScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = GpStickSpacing.screen, vertical = GpStickSpacing.section),
-                    verticalArrangement = Arrangement.spacedBy(GpStickSpacing.section),
+                        .padding(horizontal = LatebrisSpacing.screen, vertical = LatebrisSpacing.section),
+                    verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.section),
                 ) {
                     DashboardContent(
                         modifier = Modifier.weight(1f),
@@ -181,7 +181,7 @@ private fun DashboardTopBar(
         navigationIcon = {
             TextButton(
                 onClick = onOpenNavigation,
-                modifier = Modifier.testTag(GpStickTestTags.DASHBOARD_DRAWER_OPEN),
+                modifier = Modifier.testTag(LatebrisTestTags.DASHBOARD_DRAWER_OPEN),
             ) {
                 Text("Menu")
             }
@@ -200,7 +200,7 @@ private fun DashboardTopBar(
             ConsoleBadge(
                 text = if (isRunning) "Simulation live" else "Ready",
                 highlighted = isRunning,
-                modifier = Modifier.padding(end = GpStickSpacing.screen),
+                modifier = Modifier.padding(end = LatebrisSpacing.screen),
             )
         },
     )
@@ -208,7 +208,7 @@ private fun DashboardTopBar(
 
 @Composable
 private fun DashboardDrawerContent(
-    state: GpStickUiState,
+    state: LatebrisUiState,
     selectedTab: DashboardTab,
     onTabSelected: (DashboardTab) -> Unit,
 ) {
@@ -216,8 +216,8 @@ private fun DashboardDrawerContent(
         modifier = Modifier
             .fillMaxHeight()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = GpStickSpacing.card, vertical = GpStickSpacing.hero),
-        verticalArrangement = Arrangement.spacedBy(GpStickSpacing.section),
+            .padding(horizontal = LatebrisSpacing.card, vertical = LatebrisSpacing.hero),
+        verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.section),
     ) {
         ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
             ConsoleSectionHeader(
@@ -269,18 +269,18 @@ private fun DashboardDrawerContent(
 
 private val DashboardTab.testTag: String
     get() = when (this) {
-        DashboardTab.Presets -> GpStickTestTags.DASHBOARD_TAB_PRESETS
-        DashboardTab.Status -> GpStickTestTags.DASHBOARD_TAB_STATUS
-        DashboardTab.Move -> GpStickTestTags.DASHBOARD_TAB_MOVE
-        DashboardTab.Options -> GpStickTestTags.DASHBOARD_TAB_OPTIONS
-        DashboardTab.Help -> GpStickTestTags.DASHBOARD_TAB_HELP
+        DashboardTab.Presets -> LatebrisTestTags.DASHBOARD_TAB_PRESETS
+        DashboardTab.Status -> LatebrisTestTags.DASHBOARD_TAB_STATUS
+        DashboardTab.Move -> LatebrisTestTags.DASHBOARD_TAB_MOVE
+        DashboardTab.Options -> LatebrisTestTags.DASHBOARD_TAB_OPTIONS
+        DashboardTab.Help -> LatebrisTestTags.DASHBOARD_TAB_HELP
     }
 
 @Composable
 private fun DashboardContent(
     modifier: Modifier,
     selectedTab: DashboardTab,
-    state: GpStickUiState,
+    state: LatebrisUiState,
     presetsEditable: Boolean,
     canStartSimulation: Boolean,
     onPresetSelected: (String) -> Unit,
@@ -306,7 +306,7 @@ private fun DashboardContent(
         DashboardTab.Presets -> PresetPanel(
             modifier = modifier
                 .fillMaxHeight()
-                .testTag(GpStickTestTags.DASHBOARD_PRESETS_PANEL),
+                .testTag(LatebrisTestTags.DASHBOARD_PRESETS_PANEL),
             presets = state.presets,
             selectedPresetId = state.selectedPresetId,
             onPresetSelected = onPresetSelected,
@@ -325,7 +325,7 @@ private fun DashboardContent(
             onRequestPermissions = onRequestPermissions,
             modifier = modifier
                 .fillMaxSize()
-                .testTag(GpStickTestTags.DASHBOARD_STATUS_PANEL),
+                .testTag(LatebrisTestTags.DASHBOARD_STATUS_PANEL),
         )
 
         DashboardTab.Move -> MovePanel(
@@ -337,7 +337,7 @@ private fun DashboardContent(
             onCancelMovement = onCancelMovement,
             modifier = modifier
                 .fillMaxSize()
-                .testTag(GpStickTestTags.DASHBOARD_MOVE_PANEL),
+                .testTag(LatebrisTestTags.DASHBOARD_MOVE_PANEL),
         )
 
         DashboardTab.Options -> ControlPanel(
@@ -350,20 +350,20 @@ private fun DashboardContent(
             onApplyNow = onApplyNow,
             modifier = modifier
                 .fillMaxSize()
-                .testTag(GpStickTestTags.DASHBOARD_OPTIONS_PANEL),
+                .testTag(LatebrisTestTags.DASHBOARD_OPTIONS_PANEL),
         )
 
         DashboardTab.Help -> HelpPanel(
             modifier = modifier
                 .fillMaxSize()
-                .testTag(GpStickTestTags.DASHBOARD_HELP_PANEL),
+                .testTag(LatebrisTestTags.DASHBOARD_HELP_PANEL),
         )
     }
 }
 
 @Composable
 private fun MovePanel(
-    state: GpStickUiState,
+    state: LatebrisUiState,
     onDestinationSelected: (String) -> Unit,
     onTransportModeSelected: (MoveTransportOption) -> Unit,
     onSpeedChanged: (Float) -> Unit,
@@ -415,7 +415,7 @@ private fun MovePanel(
 
 @Composable
 private fun MovePlannerPanel(
-    state: GpStickUiState,
+    state: LatebrisUiState,
     onDestinationSelected: (String) -> Unit,
     onTransportModeSelected: (MoveTransportOption) -> Unit,
     onSpeedChanged: (Float) -> Unit,
@@ -495,7 +495,7 @@ private fun MovePlannerPanel(
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.compact),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.compact),
         ) {
             MoveTransportOption.entries.forEach { mode ->
                 FilterChip(
@@ -512,7 +512,7 @@ private fun MovePlannerPanel(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp)
-                        .testTag(GpStickTestTags.moveTransportControl(mode)),
+                        .testTag(LatebrisTestTags.moveTransportControl(mode)),
                 )
             }
         }
@@ -536,7 +536,7 @@ private fun MovePlannerPanel(
             valueRange = selectedMode.minSpeedMetersPerSecond..selectedMode.maxSpeedMetersPerSecond,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(GpStickTestTags.MOVE_SPEED_CONTROL),
+                .testTag(LatebrisTestTags.MOVE_SPEED_CONTROL),
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -594,15 +594,15 @@ private fun MovePlannerPanel(
             enabled = state.canStartMovement,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(GpStickTestTags.MOVE_START_CONTROL),
+                .testTag(LatebrisTestTags.MOVE_START_CONTROL),
             contentPadding = PaddingValues(
-                horizontal = GpStickSpacing.card,
-                vertical = GpStickSpacing.card,
+                horizontal = LatebrisSpacing.card,
+                vertical = LatebrisSpacing.card,
             ),
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro),
+                verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.micro),
             ) {
                 Text(
                     text = "Start movement",
@@ -639,7 +639,7 @@ private fun MoveDestinationPicker(
                 enabled = presets.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(GpStickTestTags.MOVE_DESTINATION_CONTROL),
+                    .testTag(LatebrisTestTags.MOVE_DESTINATION_CONTROL),
             ) {
                 Text(
                     text = if (selectedDestination == null) {
@@ -656,7 +656,7 @@ private fun MoveDestinationPicker(
                 presets.forEach { preset ->
                     DropdownMenuItem(
                         text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.micro)) {
                                 Text(text = preset.name, style = MaterialTheme.typography.titleSmall)
                                 Text(
                                     text = if (preset.id == activeOriginPresetId) {
@@ -682,7 +682,7 @@ private fun MoveDestinationPicker(
 
 @Composable
 private fun MovementProgressPanel(
-    state: GpStickUiState,
+    state: LatebrisUiState,
     onCancelMovement: () -> Unit,
 ) {
     val statusLabel = when (state.movementPhase) {
@@ -731,7 +731,7 @@ private fun MovementProgressPanel(
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             LabeledValue(
                 label = "Origin",
@@ -749,14 +749,14 @@ private fun MovementProgressPanel(
     ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             LabeledValue(
                 label = "Status",
                 value = statusLabel,
                 modifier = Modifier
                     .weight(1f)
-                    .testTag(GpStickTestTags.MOVE_PROGRESS_STATUS),
+                    .testTag(LatebrisTestTags.MOVE_PROGRESS_STATUS),
             )
             LabeledValue(
                 label = "Transport",
@@ -766,7 +766,7 @@ private fun MovementProgressPanel(
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             LabeledValue(
                 label = "ETA",
@@ -819,14 +819,14 @@ private fun MovementProgressPanel(
             onClick = onCancelMovement,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(GpStickTestTags.MOVE_CANCEL_CONTROL),
+                .testTag(LatebrisTestTags.MOVE_CANCEL_CONTROL),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary,
             ),
             contentPadding = PaddingValues(
-                horizontal = GpStickSpacing.card,
-                vertical = GpStickSpacing.card,
+                horizontal = LatebrisSpacing.card,
+                vertical = LatebrisSpacing.card,
             ),
         ) {
             Text(
@@ -840,7 +840,7 @@ private fun MovementProgressPanel(
 
 @Composable
 private fun StatusPanel(
-    state: GpStickUiState,
+    state: LatebrisUiState,
     canStart: Boolean,
     canStop: Boolean,
     onStart: () -> Unit,
@@ -902,28 +902,28 @@ private fun StatusPanel(
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             LabeledValue(
                 label = "State",
                 value = if (isRunning) "Running" else "Stopped",
                 modifier = Modifier
                     .weight(1f)
-                    .testTag(GpStickTestTags.SIMULATION_STATUS),
+                    .testTag(LatebrisTestTags.SIMULATION_STATUS),
             )
             LabeledValue(
                 label = "Permission readiness",
                 value = if (state.permissionsReady) "Ready" else "Action required",
                 modifier = Modifier
                     .weight(1f)
-                    .testTag(GpStickTestTags.PERMISSION_STATUS),
+                    .testTag(LatebrisTestTags.PERMISSION_STATUS),
             )
             LabeledValue(
                 label = if (isRunning) "Active preset" else "Selected preset",
                 value = highlightedPreset?.name ?: "None selected",
                 modifier = Modifier
                     .weight(1f)
-                    .testTag(GpStickTestTags.SELECTED_PRESET),
+                    .testTag(LatebrisTestTags.SELECTED_PRESET),
             )
         }
         ConsolePanelCard(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -932,7 +932,7 @@ private fun StatusPanel(
                 LabeledValue(
                     label = "Active coordinates",
                     value = it,
-                    modifier = Modifier.testTag(GpStickTestTags.ACTIVE_PRESET_COORDINATES),
+                    modifier = Modifier.testTag(LatebrisTestTags.ACTIVE_PRESET_COORDINATES),
                 )
             }
         }
@@ -956,7 +956,7 @@ private fun StatusPanel(
                 )
                 FilledTonalButton(
                     onClick = onRequestPermissions,
-                    modifier = Modifier.testTag(GpStickTestTags.REQUEST_PERMISSIONS_CONTROL),
+                    modifier = Modifier.testTag(LatebrisTestTags.REQUEST_PERMISSIONS_CONTROL),
                 ) {
                     Text("Request permissions")
                 }
@@ -1001,23 +1001,23 @@ private fun StatusPanel(
                     },
                 ),
                 contentPadding = PaddingValues(
-                    horizontal = GpStickSpacing.card,
-                    vertical = GpStickSpacing.card,
+                    horizontal = LatebrisSpacing.card,
+                    vertical = LatebrisSpacing.card,
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = GpStickSpacing.hero * 2)
+                    .heightIn(min = LatebrisSpacing.hero * 2)
                     .testTag(
                         if (isRunning) {
-                            GpStickTestTags.STOP_CONTROL
+                            LatebrisTestTags.STOP_CONTROL
                         } else {
-                            GpStickTestTags.START_CONTROL
+                            LatebrisTestTags.START_CONTROL
                         },
                     ),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro),
+                    verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.micro),
                 ) {
                     Text(
                         text = if (isRunning) "Stop" else "Start",
@@ -1047,7 +1047,7 @@ private fun SettingsSummarySection(
     cellEnabled: Boolean,
     movementEnabled: Boolean,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(GpStickSpacing.compact)) {
+    Column(verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.compact)) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
@@ -1061,12 +1061,12 @@ private fun SettingsSummarySection(
 }
 
 @Composable
-private fun PermissionStatusSection(state: GpStickUiState) {
-    Column(verticalArrangement = Arrangement.spacedBy(GpStickSpacing.compact)) {
+private fun PermissionStatusSection(state: LatebrisUiState) {
+    Column(verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.compact)) {
         LabeledValue(
             label = "Location access",
             value = if (state.locationPermissionGranted) "Granted" else "Required",
-            modifier = Modifier.testTag(GpStickTestTags.LOCATION_PERMISSION_STATUS),
+            modifier = Modifier.testTag(LatebrisTestTags.LOCATION_PERMISSION_STATUS),
         )
         LabeledValue(
             label = "Notifications",
@@ -1075,7 +1075,7 @@ private fun PermissionStatusSection(state: GpStickUiState) {
                 state.notificationPermissionGranted -> "Granted"
                 else -> "Required"
             },
-            modifier = Modifier.testTag(GpStickTestTags.NOTIFICATION_PERMISSION_STATUS),
+            modifier = Modifier.testTag(LatebrisTestTags.NOTIFICATION_PERMISSION_STATUS),
         )
     }
 }
@@ -1112,7 +1112,7 @@ private fun PresetPanel(
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             FilledTonalButton(
                 onClick = onCreatePreset,
@@ -1120,7 +1120,7 @@ private fun PresetPanel(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp)
-                    .testTag(GpStickTestTags.NEW_PRESET_CONTROL),
+                    .testTag(LatebrisTestTags.NEW_PRESET_CONTROL),
             ) {
                 Text("New preset")
             }
@@ -1134,7 +1134,7 @@ private fun PresetPanel(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp)
-                    .testTag(GpStickTestTags.CAPTURE_CURRENT_STATE_CONTROL),
+                    .testTag(LatebrisTestTags.CAPTURE_CURRENT_STATE_CONTROL),
             ) {
                 Text("Capture")
             }
@@ -1144,9 +1144,9 @@ private fun PresetPanel(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .testTag(GpStickTestTags.PRESET_LIST),
-            contentPadding = PaddingValues(vertical = GpStickSpacing.micro),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                .testTag(LatebrisTestTags.PRESET_LIST),
+            contentPadding = PaddingValues(vertical = LatebrisSpacing.micro),
+            verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             items(items = presets, key = { it.id }) { preset ->
                 PresetRow(
@@ -1185,11 +1185,11 @@ private fun PresetRow(
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        border = BorderStroke(GpStickSpacing.border, borderColor),
+        border = BorderStroke(LatebrisSpacing.border, borderColor),
     ) {
         Column(
-            modifier = Modifier.padding(GpStickSpacing.card),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.compact),
+            modifier = Modifier.padding(LatebrisSpacing.card),
+            verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.compact),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1198,7 +1198,7 @@ private fun PresetRow(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro),
+                    verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.micro),
                 ) {
                     Text(
                         text = preset.name,
@@ -1212,7 +1212,7 @@ private fun PresetRow(
                     )
                 }
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.compact),
+                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.compact),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (selected) {
@@ -1221,7 +1221,7 @@ private fun PresetRow(
                     TextButton(
                         onClick = onEdit,
                         enabled = enabled,
-                        modifier = Modifier.testTag(GpStickTestTags.editPresetControl(preset.id)),
+                        modifier = Modifier.testTag(LatebrisTestTags.editPresetControl(preset.id)),
                     ) {
                         Text("Edit")
                     }
@@ -1238,7 +1238,7 @@ private fun PresetRow(
 
 @Composable
 private fun ControlPanel(
-    state: GpStickUiState,
+    state: LatebrisUiState,
     onFeaturesEnabledChanged: (Boolean) -> Unit,
     onGpsMockEnabledChanged: (Boolean) -> Unit,
     onWifiMockEnabledChanged: (Boolean) -> Unit,
@@ -1280,35 +1280,35 @@ private fun ControlPanel(
             label = "Enable simulation features",
             value = state.pendingFeaturesEnabled,
             onValueChange = onFeaturesEnabledChanged,
-            testTag = GpStickTestTags.FEATURES_ENABLED_TOGGLE,
+            testTag = LatebrisTestTags.FEATURES_ENABLED_TOGGLE,
         )
         ToggleOption(
             label = "Mock GPS location",
             value = state.pendingGpsMockEnabled,
             onValueChange = onGpsMockEnabledChanged,
             enabled = state.pendingFeaturesEnabled,
-            testTag = GpStickTestTags.GPS_MOCK_ENABLED_TOGGLE,
+            testTag = LatebrisTestTags.GPS_MOCK_ENABLED_TOGGLE,
         )
         ToggleOption(
             label = "Mock Wi-Fi scans",
             value = state.pendingWifiMockEnabled,
             onValueChange = onWifiMockEnabledChanged,
             enabled = state.pendingFeaturesEnabled,
-            testTag = GpStickTestTags.WIFI_MOCK_ENABLED_TOGGLE,
+            testTag = LatebrisTestTags.WIFI_MOCK_ENABLED_TOGGLE,
         )
         ToggleOption(
             label = "Mock cell info",
             value = state.pendingCellMockEnabled,
             onValueChange = onCellMockEnabledChanged,
             enabled = state.pendingFeaturesEnabled,
-            testTag = GpStickTestTags.CELL_MOCK_ENABLED_TOGGLE,
+            testTag = LatebrisTestTags.CELL_MOCK_ENABLED_TOGGLE,
         )
         ToggleOption(
             label = "Movement simulation",
             value = state.pendingMovementSimulationEnabled,
             onValueChange = onMovementSimulationEnabledChanged,
             enabled = state.pendingFeaturesEnabled,
-            testTag = GpStickTestTags.MOVEMENT_SIMULATION_ENABLED_TOGGLE,
+            testTag = LatebrisTestTags.MOVEMENT_SIMULATION_ENABLED_TOGGLE,
         )
         if (isRunning) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -1323,7 +1323,7 @@ private fun ControlPanel(
                     enabled = state.canApplyPendingSettings,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag(GpStickTestTags.APPLY_NOW_CONTROL),
+                        .testTag(LatebrisTestTags.APPLY_NOW_CONTROL),
                 ) {
                     Text("Apply now")
                 }
@@ -1469,7 +1469,7 @@ private fun LabeledValue(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro),
+        verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.micro),
     ) {
         Text(
             text = label,

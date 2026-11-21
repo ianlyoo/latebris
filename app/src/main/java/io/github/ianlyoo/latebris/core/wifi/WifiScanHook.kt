@@ -67,6 +67,6 @@ class WifiScanHook : IXposedHookLoadPackage {
     }.getOrNull()
 
     private companion object {
-        const val TAG = "GpStickWifiHook"
+        const val TAG = "LatebrisWifiHook"
     }
 }

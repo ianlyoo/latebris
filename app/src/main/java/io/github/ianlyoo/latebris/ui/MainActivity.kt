@@ -17,7 +17,7 @@ import io.github.ianlyoo.latebris.service.RuntimePermissionGate
 
 class MainActivity : ComponentActivity() {
     private val container: AppContainer
-        get() = (application as GpStickApplication).appContainer
+        get() = (application as LatebrisApplication).appContainer
 
     private var pendingPermissionRationale: Map<String, Boolean> = emptyMap()
 
@@ -28,10 +28,10 @@ class MainActivity : ComponentActivity() {
         maybeOpenPermissionSettings(permissions)
     }
 
-    private val viewModel: GpStickViewModel by viewModels {
+    private val viewModel: LatebrisViewModel by viewModels {
         viewModelFactory {
             initializer {
-                GpStickViewModel(
+                LatebrisViewModel(
                     presetRepository = container.presetRepository,
                     serviceController = container.foregroundServiceController,
                     simulationStateStore = container.simulationStateStore,
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
         syncRuntimePermissionState()
 
         setContent {
-            GpStickApp(
+            LatebrisApp(
                 viewModel = viewModel,
                 onRequestPermissions = ::requestRuntimePermissions,
             )

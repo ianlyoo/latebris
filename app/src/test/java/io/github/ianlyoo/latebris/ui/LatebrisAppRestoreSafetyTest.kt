@@ -3,17 +3,17 @@ package io.github.ianlyoo.latebris.ui
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class GpStickAppRestoreSafetyTest {
+class LatebrisAppRestoreSafetyTest {
 
     @Test
-    fun sanitizeGpStickRouteName_keepsKnownRoute() {
-        assertEquals("PresetEditor", sanitizeGpStickRouteName("PresetEditor"))
+    fun sanitizeLatebrisRouteName_keepsKnownRoute() {
+        assertEquals("PresetEditor", sanitizeLatebrisRouteName("PresetEditor"))
     }
 
     @Test
-    fun sanitizeGpStickRouteName_fallsBackForUnknownRoute() {
-        assertEquals("Dashboard", sanitizeGpStickRouteName("UnknownRoute"))
-        assertEquals("Dashboard", sanitizeGpStickRouteName(null))
+    fun sanitizeLatebrisRouteName_fallsBackForUnknownRoute() {
+        assertEquals("Dashboard", sanitizeLatebrisRouteName("UnknownRoute"))
+        assertEquals("Dashboard", sanitizeLatebrisRouteName(null))
     }
 
     @Test

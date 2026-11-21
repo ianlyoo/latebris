@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-object GpStickSpacing {
+object LatebrisSpacing {
     val micro: Dp = 4.dp
     val compact: Dp = 8.dp
     val stack: Dp = 12.dp
@@ -24,7 +24,7 @@ object GpStickSpacing {
     val border: Dp = 1.dp
 }
 
-object GpStickAlpha {
+object LatebrisAlpha {
     const val chromeGlow: Float = 0.16f
     const val chromeGlowSoft: Float = 0.08f
 }
@@ -76,7 +76,7 @@ private val DarkColors = darkColorScheme(
     outlineVariant = StickOutlineSoft,
 )
 
-private val GpStickShapes = Shapes(
+private val LatebrisShapes = Shapes(
     small = RoundedCornerShape(16.dp),
     medium = RoundedCornerShape(22.dp),
     large = RoundedCornerShape(30.dp),
@@ -84,14 +84,14 @@ private val GpStickShapes = Shapes(
 )
 
 @Composable
-fun GpStickTheme(
+fun LatebrisTheme(
     darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
-        typography = GpStickTypography,
-        shapes = GpStickShapes,
+        typography = LatebrisTypography,
+        shapes = LatebrisShapes,
         content = content,
     )
 }

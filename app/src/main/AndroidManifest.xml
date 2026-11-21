@@ -11,14 +11,14 @@
     <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
 
     <application
-        android:name=".ui.GpStickApplication"
+        android:name=".ui.LatebrisApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.GpStick">
+        android:theme="@style/Theme.Latebris">
 
         <meta-data
             android:name="xposedmodule"

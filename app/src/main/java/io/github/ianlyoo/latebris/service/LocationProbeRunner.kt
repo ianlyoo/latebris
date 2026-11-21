@@ -147,6 +147,6 @@ class LocationProbeRunner(
     }
 
     companion object {
-        const val TAG = "GpStickLocationProbe"
+        const val TAG = "LatebrisLocationProbe"
     }
 }

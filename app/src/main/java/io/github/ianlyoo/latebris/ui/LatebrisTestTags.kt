@@ -1,6 +1,6 @@
 package io.github.ianlyoo.latebris.ui
 
-object GpStickTestTags {
+object LatebrisTestTags {
     const val DASHBOARD_DRAWER_OPEN = "dashboard_drawer_open"
 
     const val DASHBOARD_TAB_PRESETS = "dashboard_tab_presets"

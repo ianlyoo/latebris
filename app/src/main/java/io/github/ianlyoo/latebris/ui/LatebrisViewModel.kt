@@ -152,12 +152,12 @@ enum class SimulationState {
     Running,
 }
 
-sealed interface GpStickUiEvent {
-    data class ShowMessage(val message: String) : GpStickUiEvent
+sealed interface LatebrisUiEvent {
+    data class ShowMessage(val message: String) : LatebrisUiEvent
 }
 
 @Immutable
-data class GpStickUiState(
+data class LatebrisUiState(
     val presets: List<PresetUiModel> = emptyList(),
     val selectedPresetId: String? = null,
     val activePresetId: String? = null,
@@ -280,7 +280,7 @@ data class GpStickUiState(
             pendingSettingsKeepAnyMockFeatureEnabled
 }
 
-class GpStickViewModel(
+class LatebrisViewModel(
     private val presetRepository: PresetRepository,
     private val serviceController: ForegroundServiceController,
     private val simulationStateStore: SimulationStateStore,
@@ -295,12 +295,12 @@ class GpStickViewModel(
         presets = initialPresetModels,
         activePresetId = initialSimulationState.activePresetId,
     )
-    private val _events = MutableSharedFlow<GpStickUiEvent>(
+    private val _events = MutableSharedFlow<LatebrisUiEvent>(
         replay = 1,
         extraBufferCapacity = 16,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
-    val events: SharedFlow<GpStickUiEvent> = _events.asSharedFlow()
+    val events: SharedFlow<LatebrisUiEvent> = _events.asSharedFlow()
     private var arrivalResetJob: Job? = null
     private var lastHandledFailureEventId = if (initialSimulationState.failureMessage == null) {
         initialSimulationState.failureEventId
@@ -309,7 +309,7 @@ class GpStickViewModel(
     }
 
     var uiState by mutableStateOf(
-        GpStickUiState(
+        LatebrisUiState(
             presets = initialPresetModels,
             selectedPresetId = initialSimulationState.activePresetId ?: initialPresets.firstOrNull()?.id,
             activePresetId = initialSimulationState.activePresetId,
@@ -377,7 +377,7 @@ class GpStickViewModel(
 
     fun captureCurrentDeviceState(onCaptured: (Boolean) -> Unit) {
         if (uiState.simulationState == SimulationState.Running) {
-            emitUiEvent(GpStickUiEvent.ShowMessage("Stop the current simulation before capturing device state."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("Stop the current simulation before capturing device state."))
             onCaptured(false)
             return
         }
@@ -389,7 +389,7 @@ class GpStickViewModel(
 
             if (capturedState == null) {
                 emitUiEvent(
-                    GpStickUiEvent.ShowMessage(
+                    LatebrisUiEvent.ShowMessage(
                         "Unable to capture current state. Check location permission and current device location.",
                     ),
                 )
@@ -593,29 +593,29 @@ class GpStickViewModel(
 
     fun startSimulation() {
         if (uiState.simulationState == SimulationState.Running) {
-            emitUiEvent(GpStickUiEvent.ShowMessage("Simulation is already running."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("Simulation is already running."))
             return
         }
 
         if (!uiState.canStartSimulation) {
-            emitUiEvent(GpStickUiEvent.ShowMessage("Cannot start: permissions or features are not ready."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("Cannot start: permissions or features are not ready."))
             return
         }
 
         val selectedPreset = uiState.selectedPresetId?.let(presetRepository::getPreset) ?: run {
-            emitUiEvent(GpStickUiEvent.ShowMessage("No preset selected."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("No preset selected."))
             return
         }
 
         if (!serviceController.start(selectedPreset)) {
-            emitUiEvent(GpStickUiEvent.ShowMessage("Unable to start simulation. Check required permissions and active features."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("Unable to start simulation. Check required permissions and active features."))
         }
     }
 
     fun startMovement() {
         val blockedReason = uiState.movementStartBlockedReason
         if (blockedReason != null) {
-            emitUiEvent(GpStickUiEvent.ShowMessage(blockedReason))
+            emitUiEvent(LatebrisUiEvent.ShowMessage(blockedReason))
             return
         }
 
@@ -630,7 +630,7 @@ class GpStickViewModel(
                     speedMetersPerSecond = moveForm.speedMetersPerSecond.toDouble(),
                 )
             ) {
-                emitUiEvent(GpStickUiEvent.ShowMessage("Unable to start route movement for the current live session."))
+                emitUiEvent(LatebrisUiEvent.ShowMessage("Unable to start route movement for the current live session."))
             }
             return
         }
@@ -642,7 +642,7 @@ class GpStickViewModel(
 
             if (capturedState == null) {
                 emitUiEvent(
-                    GpStickUiEvent.ShowMessage(
+                    LatebrisUiEvent.ShowMessage(
                         "Unable to capture the current device location. Check location permission and current position.",
                     ),
                 )
@@ -658,7 +658,7 @@ class GpStickViewModel(
                 )
             ) {
                 emitUiEvent(
-                    GpStickUiEvent.ShowMessage(
+                    LatebrisUiEvent.ShowMessage(
                         "Unable to start route movement from the current device location.",
                     ),
                 )
@@ -697,7 +697,7 @@ class GpStickViewModel(
 
     fun stopSimulation() {
         if (uiState.simulationState == SimulationState.Stopped) {
-            emitUiEvent(GpStickUiEvent.ShowMessage("Simulation is already stopped."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("Simulation is already stopped."))
             return
         }
 
@@ -710,7 +710,7 @@ class GpStickViewModel(
         }
 
         if (!serviceController.cancelMovement()) {
-            emitUiEvent(GpStickUiEvent.ShowMessage("Unable to cancel the active route movement."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("Unable to cancel the active route movement."))
         }
     }
 
@@ -720,7 +720,7 @@ class GpStickViewModel(
         }
 
         if (!serviceController.applyPendingOptions()) {
-            emitUiEvent(GpStickUiEvent.ShowMessage("Unable to send pending options to the active simulation."))
+            emitUiEvent(LatebrisUiEvent.ShowMessage("Unable to send pending options to the active simulation."))
         }
     }
 
@@ -780,7 +780,7 @@ class GpStickViewModel(
             else -> presets.firstOrNull()?.id
         }
 
-        uiState = GpStickUiState(
+        uiState = LatebrisUiState(
             presets = presets,
             selectedPresetId = resolvedSelectedPresetId,
             activePresetId = activePresetId,
@@ -818,7 +818,7 @@ class GpStickViewModel(
         )
     }
 
-    private fun emitUiEvent(event: GpStickUiEvent) {
+    private fun emitUiEvent(event: LatebrisUiEvent) {
         _events.tryEmit(event)
     }
 
@@ -834,7 +834,7 @@ class GpStickViewModel(
         }
 
         lastHandledFailureEventId = state.failureEventId
-        emitUiEvent(GpStickUiEvent.ShowMessage(failureMessage))
+        emitUiEvent(LatebrisUiEvent.ShowMessage(failureMessage))
     }
 
     private fun canStartSimulation(

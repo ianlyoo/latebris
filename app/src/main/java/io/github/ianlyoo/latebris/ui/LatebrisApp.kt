@@ -12,34 +12,34 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import io.github.ianlyoo.latebris.ui.theme.GpStickTheme
+import io.github.ianlyoo.latebris.ui.theme.LatebrisTheme
 
-private enum class GpStickRoute {
+private enum class LatebrisRoute {
     Dashboard,
     PresetEditor,
 }
 
-internal fun sanitizeGpStickRouteName(raw: String?): String =
-    GpStickRoute.entries.firstOrNull { it.name == raw }?.name ?: GpStickRoute.Dashboard.name
+internal fun sanitizeLatebrisRouteName(raw: String?): String =
+    LatebrisRoute.entries.firstOrNull { it.name == raw }?.name ?: LatebrisRoute.Dashboard.name
 
 internal fun sanitizeDashboardTabName(raw: String?): String =
     DashboardTab.entries.firstOrNull { it.name == raw }?.name ?: DashboardTab.Status.name
 
 @Composable
-fun GpStickApp(
-    viewModel: GpStickViewModel,
+fun LatebrisApp(
+    viewModel: LatebrisViewModel,
     onRequestPermissions: () -> Unit = {},
 ) {
-    var route by rememberSaveable { mutableStateOf(GpStickRoute.Dashboard.name) }
+    var route by rememberSaveable { mutableStateOf(LatebrisRoute.Dashboard.name) }
     var dashboardTab by rememberSaveable { mutableStateOf(DashboardTab.Status.name) }
     val context = LocalContext.current
-    val resolvedRoute = sanitizeGpStickRouteName(route)
+    val resolvedRoute = sanitizeLatebrisRouteName(route)
     val resolvedDashboardTab = sanitizeDashboardTabName(dashboardTab)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is GpStickUiEvent.ShowMessage -> {
+                is LatebrisUiEvent.ShowMessage -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                     viewModel.clearReplayedUiEvents()
                 }
@@ -47,13 +47,13 @@ fun GpStickApp(
         }
     }
 
-    GpStickTheme(darkTheme = true) {
+    LatebrisTheme(darkTheme = true) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            when (GpStickRoute.valueOf(resolvedRoute)) {
-                GpStickRoute.Dashboard -> {
+            when (LatebrisRoute.valueOf(resolvedRoute)) {
+                LatebrisRoute.Dashboard -> {
                     HomeScreen(
                         state = viewModel.uiState,
                         selectedTab = DashboardTab.valueOf(resolvedDashboardTab),
@@ -65,7 +65,7 @@ fun GpStickApp(
                         onCaptureCurrentState = {
                             viewModel.captureCurrentDeviceState { captured ->
                                 if (captured) {
-                                    route = GpStickRoute.PresetEditor.name
+                                    route = LatebrisRoute.PresetEditor.name
                                 }
                             }
                         },
@@ -82,21 +82,21 @@ fun GpStickApp(
                         onApplyNow = viewModel::applyPendingOptions,
                         onCreatePreset = {
                             viewModel.openPresetEditor(presetId = null)
-                            route = GpStickRoute.PresetEditor.name
+                            route = LatebrisRoute.PresetEditor.name
                         },
                         onEditPreset = { presetId ->
                             viewModel.openPresetEditor(presetId)
-                            route = GpStickRoute.PresetEditor.name
+                            route = LatebrisRoute.PresetEditor.name
                         },
                     )
                 }
 
-                GpStickRoute.PresetEditor -> {
+                LatebrisRoute.PresetEditor -> {
                     PresetEditorScreen(
                         state = viewModel.presetEditorState,
                         onNavigateBack = {
                             viewModel.closePresetEditor()
-                            route = GpStickRoute.Dashboard.name
+                            route = LatebrisRoute.Dashboard.name
                         },
                         onNameChanged = viewModel::updateEditorName,
                         onLatitudeChanged = viewModel::updateEditorLatitude,
@@ -113,12 +113,12 @@ fun GpStickApp(
                         onSave = {
                             if (viewModel.savePresetEdits()) {
                                 viewModel.closePresetEditor()
-                                route = GpStickRoute.Dashboard.name
+                                route = LatebrisRoute.Dashboard.name
                             }
                         },
                         onDelete = {
                             if (viewModel.deleteEditingPreset()) {
-                                route = GpStickRoute.Dashboard.name
+                                route = LatebrisRoute.Dashboard.name
                             }
                         },
                     )

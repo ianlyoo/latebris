@@ -23,6 +23,6 @@ class ModuleEntryPoint : IXposedHookLoadPackage {
     }
 
     private companion object {
-        const val TAG = "GpStickModule"
+        const val TAG = "LatebrisModule"
     }
 }

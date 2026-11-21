@@ -201,7 +201,7 @@ class CellInfoHook : IXposedHookLoadPackage {
     }.getOrNull()
 
     private companion object {
-        const val TAG = "GpStickCellHook"
+        const val TAG = "LatebrisCellHook"
         val RANDOM = Random(System.currentTimeMillis())
     }
 }

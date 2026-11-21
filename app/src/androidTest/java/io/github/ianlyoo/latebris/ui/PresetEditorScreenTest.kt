@@ -52,7 +52,7 @@ class PresetEditorScreenTest {
             )
         }
 
-        composeTestRule.onNodeWithTag(GpStickTestTags.PRESET_EDITOR_SCREEN).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LatebrisTestTags.PRESET_EDITOR_SCREEN).assertIsDisplayed()
 
         Espresso.pressBack()
         composeTestRule.waitForIdle()
@@ -104,9 +104,9 @@ class PresetEditorScreenTest {
             )
         }
 
-        composeTestRule.onNodeWithTag(GpStickTestTags.PRESET_LATITUDE_FIELD)
+        composeTestRule.onNodeWithTag(LatebrisTestTags.PRESET_LATITUDE_FIELD)
             .performTextInput("３７,５６６５")
-        composeTestRule.onNodeWithTag(GpStickTestTags.PRESET_LONGITUDE_FIELD)
+        composeTestRule.onNodeWithTag(LatebrisTestTags.PRESET_LONGITUDE_FIELD)
             .performTextInput("−１２６,９７８０")
 
         composeTestRule.runOnIdle {

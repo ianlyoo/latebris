@@ -457,6 +457,6 @@ class LocationMockHook : IXposedHookLoadPackage {
     }.getOrNull()
 
     private companion object {
-        const val TAG = "GpStickLocationHook"
+        const val TAG = "LatebrisLocationHook"
     }
 }

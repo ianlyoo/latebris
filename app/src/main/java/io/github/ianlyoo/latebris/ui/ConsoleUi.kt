@@ -22,8 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import io.github.ianlyoo.latebris.ui.theme.GpStickAlpha
-import io.github.ianlyoo.latebris.ui.theme.GpStickSpacing
+import io.github.ianlyoo.latebris.ui.theme.LatebrisAlpha
+import io.github.ianlyoo.latebris.ui.theme.LatebrisSpacing
 
 @Composable
 fun ConsoleScreenBackground(
@@ -47,7 +47,7 @@ fun ConsoleScreenBackground(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = GpStickAlpha.chromeGlow),
+                            MaterialTheme.colorScheme.primary.copy(alpha = LatebrisAlpha.chromeGlow),
                             Color.Transparent,
                         ),
                     ),
@@ -59,9 +59,9 @@ fun ConsoleScreenBackground(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.secondary.copy(alpha = GpStickAlpha.chromeGlowSoft),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = LatebrisAlpha.chromeGlowSoft),
                             Color.Transparent,
-                            MaterialTheme.colorScheme.primary.copy(alpha = GpStickAlpha.chromeGlowSoft),
+                            MaterialTheme.colorScheme.primary.copy(alpha = LatebrisAlpha.chromeGlowSoft),
                         ),
                     ),
                 ),
@@ -74,19 +74,19 @@ fun ConsoleScreenBackground(
 fun ConsolePanelCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
-    contentPadding: PaddingValues = PaddingValues(GpStickSpacing.card),
+    contentPadding: PaddingValues = PaddingValues(LatebrisSpacing.card),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        border = BorderStroke(GpStickSpacing.border, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(LatebrisSpacing.border, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
             content = content,
         )
     }
@@ -107,7 +107,7 @@ fun ConsoleSectionHeader(
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(GpStickSpacing.micro),
+            verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.micro),
         ) {
             eyebrow?.let {
                 Text(
@@ -153,13 +153,13 @@ fun ConsoleBadge(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        border = BorderStroke(GpStickSpacing.border, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(LatebrisSpacing.border, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(
-                horizontal = GpStickSpacing.badgeHorizontal,
-                vertical = GpStickSpacing.badgeVertical,
+                horizontal = LatebrisSpacing.badgeHorizontal,
+                vertical = LatebrisSpacing.badgeVertical,
             ),
             style = MaterialTheme.typography.labelMedium,
             color = contentColor,

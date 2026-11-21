@@ -2,7 +2,7 @@ package io.github.ianlyoo.latebris.ui
 
 import android.app.Application
 
-class GpStickApplication : Application() {
+class LatebrisApplication : Application() {
     lateinit var appContainer: AppContainer
         private set
 

@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
-import io.github.ianlyoo.latebris.ui.theme.GpStickSpacing
+import io.github.ianlyoo.latebris.ui.theme.LatebrisSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +45,7 @@ fun PresetEditorScreen(
 ) {
     BackHandler(onBack = onNavigateBack)
     Scaffold(
-        modifier = Modifier.testTag(GpStickTestTags.PRESET_EDITOR_SCREEN),
+        modifier = Modifier.testTag(LatebrisTestTags.PRESET_EDITOR_SCREEN),
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
@@ -62,7 +62,7 @@ fun PresetEditorScreen(
                 navigationIcon = {
                     TextButton(
                         onClick = onNavigateBack,
-                        modifier = Modifier.testTag(GpStickTestTags.PRESET_EDITOR_BACK),
+                        modifier = Modifier.testTag(LatebrisTestTags.PRESET_EDITOR_BACK),
                     ) {
                         Text("Back")
                     }
@@ -79,8 +79,8 @@ fun PresetEditorScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = GpStickSpacing.screen, vertical = GpStickSpacing.section),
-                verticalArrangement = Arrangement.spacedBy(GpStickSpacing.section),
+                    .padding(horizontal = LatebrisSpacing.screen, vertical = LatebrisSpacing.section),
+                verticalArrangement = Arrangement.spacedBy(LatebrisSpacing.section),
             ) {
                 EditorOverviewCard(state = state)
                 PresetDetailsSection(
@@ -116,14 +116,14 @@ fun PresetEditorScreen(
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
                 ) {
                     Button(
                         onClick = onSave,
                         enabled = state.isSaveEnabled,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag(GpStickTestTags.SAVE_PRESET_CONTROL),
+                            .testTag(LatebrisTestTags.SAVE_PRESET_CONTROL),
                     ) {
                         Text(if (state.isNew) "Create" else "Save")
                     }
@@ -132,7 +132,7 @@ fun PresetEditorScreen(
                             onClick = onDelete,
                             modifier = Modifier
                                 .weight(1f)
-                                .testTag(GpStickTestTags.DELETE_PRESET_CONTROL),
+                                .testTag(LatebrisTestTags.DELETE_PRESET_CONTROL),
                         ) {
                             Text("Delete")
                         }
@@ -166,7 +166,7 @@ private fun EditorOverviewCard(state: PresetEditorUiState) {
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             EditorMetric(
                 modifier = Modifier.weight(1f),
@@ -228,11 +228,11 @@ private fun PresetDetailsSection(
             onValueChange = onNameChanged,
             modifier = Modifier.fillMaxWidth(),
             label = "Name",
-            testTag = GpStickTestTags.PRESET_NAME_FIELD,
+            testTag = LatebrisTestTags.PRESET_NAME_FIELD,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+            horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
         ) {
             EditorTextField(
                 value = state.latitude,
@@ -240,7 +240,7 @@ private fun PresetDetailsSection(
                 modifier = Modifier.weight(1f),
                 label = "Latitude",
                 keyboardType = KeyboardType.Text,
-                testTag = GpStickTestTags.PRESET_LATITUDE_FIELD,
+                testTag = LatebrisTestTags.PRESET_LATITUDE_FIELD,
             )
             EditorTextField(
                 value = state.longitude,
@@ -248,7 +248,7 @@ private fun PresetDetailsSection(
                 modifier = Modifier.weight(1f),
                 label = "Longitude",
                 keyboardType = KeyboardType.Text,
-                testTag = GpStickTestTags.PRESET_LONGITUDE_FIELD,
+                testTag = LatebrisTestTags.PRESET_LONGITUDE_FIELD,
             )
         }
         EditorTextField(
@@ -257,7 +257,7 @@ private fun PresetDetailsSection(
             modifier = Modifier.fillMaxWidth(),
             label = "Altitude",
             keyboardType = KeyboardType.Text,
-            testTag = GpStickTestTags.PRESET_ALTITUDE_FIELD,
+            testTag = LatebrisTestTags.PRESET_ALTITUDE_FIELD,
         )
     }
 }
@@ -276,7 +276,7 @@ private fun WifiNetworksSection(
         action = {
             TextButton(
                 onClick = onAddWifiNetwork,
-                modifier = Modifier.testTag(GpStickTestTags.ADD_WIFI_ROW_CONTROL),
+                modifier = Modifier.testTag(LatebrisTestTags.ADD_WIFI_ROW_CONTROL),
             ) {
                 Text("Add row")
             }
@@ -299,7 +299,7 @@ private fun WifiNetworksSection(
                     )
                     TextButton(
                         onClick = { onRemoveWifiNetwork(index) },
-                        modifier = Modifier.testTag(GpStickTestTags.removeWifiRowControl(index)),
+                        modifier = Modifier.testTag(LatebrisTestTags.removeWifiRowControl(index)),
                     ) {
                         Text("Remove")
                     }
@@ -318,7 +318,7 @@ private fun WifiNetworksSection(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
                 ) {
                     EditorTextField(
                         value = row.level,
@@ -355,17 +355,17 @@ private fun CellTowersSection(
         title = "Cell towers",
         description = "Layer in tower metadata manually or pull a quick auto-fill where supported.",
         action = {
-            Row(horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.compact)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.compact)) {
                 TextButton(
                     onClick = onAddCellTower,
-                    modifier = Modifier.testTag(GpStickTestTags.ADD_CELL_ROW_CONTROL),
+                    modifier = Modifier.testTag(LatebrisTestTags.ADD_CELL_ROW_CONTROL),
                 ) {
                     Text("Add row")
                 }
                 TextButton(
                     onClick = onAutoFill,
                     enabled = canAutoFill,
-                    modifier = Modifier.testTag(GpStickTestTags.AUTO_FILL_CONTROL),
+                    modifier = Modifier.testTag(LatebrisTestTags.AUTO_FILL_CONTROL),
                 ) {
                     Text(if (isAutoFillInProgress) "Filling…" else "Auto Fill")
                 }
@@ -389,14 +389,14 @@ private fun CellTowersSection(
                     )
                     TextButton(
                         onClick = { onRemoveCellTower(index) },
-                        modifier = Modifier.testTag(GpStickTestTags.removeCellRowControl(index)),
+                        modifier = Modifier.testTag(LatebrisTestTags.removeCellRowControl(index)),
                     ) {
                         Text("Remove")
                     }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
                 ) {
                     NumberField(
                         modifier = Modifier.weight(1f),
@@ -419,7 +419,7 @@ private fun CellTowersSection(
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GpStickSpacing.stack),
+                    horizontalArrangement = Arrangement.spacedBy(LatebrisSpacing.stack),
                 ) {
                     NumberField(
                         modifier = Modifier.weight(1f),

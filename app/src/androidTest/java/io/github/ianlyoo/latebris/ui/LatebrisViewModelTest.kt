@@ -25,7 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class GpStickViewModelTest {
+class LatebrisViewModelTest {
 
     @Test
     fun startSimulation_emitsMessage_whenAlreadyRunning() = runBlocking {
@@ -43,7 +43,7 @@ class GpStickViewModelTest {
             sessionId = "session-running-test",
         )
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(listOf(preset)),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -64,7 +64,7 @@ class GpStickViewModelTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val simulationStateStore = prepareStore(context)
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(emptyList()),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -85,7 +85,7 @@ class GpStickViewModelTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val simulationStateStore = prepareStore(context)
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(emptyList()),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -113,7 +113,7 @@ class GpStickViewModelTest {
             gps = GpsPreset(1.0, 2.0, 3.0, 4f),
         )
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(listOf(preset)),
             serviceController = FakeServiceController(startResult = false),
             simulationStateStore = simulationStateStore,
@@ -138,7 +138,7 @@ class GpStickViewModelTest {
         val simulationStateStore = prepareStore(context)
         val repository = InMemoryPresetRepository(emptyList())
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = repository,
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -181,7 +181,7 @@ class GpStickViewModelTest {
         )
         simulationStateStore.setMovementSimulationEnabled(true)
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(listOf(preset)),
             serviceController = FakeServiceController(startResult = true, applyPendingOptionsResult = false),
             simulationStateStore = simulationStateStore,
@@ -219,7 +219,7 @@ class GpStickViewModelTest {
             ),
         )
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(presets),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -256,7 +256,7 @@ class GpStickViewModelTest {
             wifiNetworks = emptyList(),
             cellTowers = emptyList(),
         )
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(listOf(destination)),
             serviceController = fakeController,
             simulationStateStore = simulationStateStore,
@@ -279,12 +279,12 @@ class GpStickViewModelTest {
         )
     }
 
-    private suspend fun captureFirstUiEventMessage(viewModel: GpStickViewModel): String {
+    private suspend fun captureFirstUiEventMessage(viewModel: LatebrisViewModel): String {
         return coroutineScope {
             val message = CompletableDeferred<String>()
             val collector = launch(Dispatchers.Main.immediate) {
                 viewModel.events.collect { event ->
-                    if (event is GpStickUiEvent.ShowMessage) {
+                    if (event is LatebrisUiEvent.ShowMessage) {
                         message.complete(event.message)
                     }
                 }
@@ -309,7 +309,7 @@ class GpStickViewModelTest {
             sessionId = "capture-running-session",
         )
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(emptyList()),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -333,7 +333,7 @@ class GpStickViewModelTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val simulationStateStore = prepareStore(context)
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(emptyList()),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -357,7 +357,7 @@ class GpStickViewModelTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val simulationStateStore = prepareStore(context)
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(emptyList()),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,
@@ -382,7 +382,7 @@ class GpStickViewModelTest {
         val simulationStateStore = prepareStore(context)
         simulationStateStore.setSimulationInactive("Simulation stopped because GPS mocking failed.")
 
-        val viewModel = GpStickViewModel(
+        val viewModel = LatebrisViewModel(
             presetRepository = InMemoryPresetRepository(emptyList()),
             serviceController = FakeServiceController(startResult = true),
             simulationStateStore = simulationStateStore,

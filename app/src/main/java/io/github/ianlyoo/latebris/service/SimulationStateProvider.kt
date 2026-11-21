@@ -18,7 +18,7 @@ class SimulationStateProvider : ContentProvider() {
         }
 
         val context = context ?: return Bundle.EMPTY
-        val application = context.applicationContext as? io.github.ianlyoo.latebris.ui.GpStickApplication
+        val application = context.applicationContext as? io.github.ianlyoo.latebris.ui.LatebrisApplication
         val appContainer = application?.appContainer
         val stateStore = appContainer?.simulationStateStore ?: SimulationStateStore.getInstance(context)
         val snapshot = stateStore.invalidateStaleRunningState()
