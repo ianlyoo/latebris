@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val defaultOpenRouteServiceApiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImExMjFjYjI1ODM1NTRlODFiOGFlMzllYjhkZjA2NTNkIiwiaCI6Im11cm11cjY0In0="
 
 val openCellIdApiKey = providers.gradleProperty("OPEN_CELL_ID_API_KEY")
     .orElse(providers.environmentVariable("OPEN_CELL_ID_API_KEY"))
@@ -13,7 +12,7 @@ val openCellIdApiKey = providers.gradleProperty("OPEN_CELL_ID_API_KEY")
 
 val openRouteServiceApiKey = providers.gradleProperty("OPEN_ROUTE_SERVICE_API_KEY")
     .orElse(providers.environmentVariable("OPEN_ROUTE_SERVICE_API_KEY"))
-    .orElse(defaultOpenRouteServiceApiKey)
+    .orElse("")
     .get()
 
 val escapedOpenCellIdApiKey = openCellIdApiKey

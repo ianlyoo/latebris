@@ -5,11 +5,9 @@ coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2024.10.01"
-serialization = "1.7.3"
 material = "1.12.0"
 playServicesLocation = "21.3.0"
 gson = "2.11.0"
-xposed = "82"
 junit4 = "4.13.2"
 androidxJunit = "1.2.1"
 espresso = "3.6.1"
@@ -32,7 +30,6 @@ google-material = { group = "com.google.android.material", name = "material", ve
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 google-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit4" }
-xposed-api = { group = "de.robv.android.xposed", name = "api", version.ref = "xposed" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 
@@ -40,4 +37,3 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
